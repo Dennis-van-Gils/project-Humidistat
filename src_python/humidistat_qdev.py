@@ -38,7 +38,11 @@ class Humidistat_qdev(QDeviceIO):
         """"""
 
         def __init__(self):
-            pass
+            # Threshold values
+            self.humi_1_LO = np.nan  # [% RH]
+            self.humi_1_HI = np.nan  # [% RH]
+            self.humi_2_LO = np.nan  # [% RH]
+            self.humi_2_HI = np.nan  # [% RH]
 
     # --------------------------------------------------------------------------
     #   Humidistat_qdev
