@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Humidity controller
+"""Humidistat
+
+A humidity controller for fluid dynamics research
 """
 __author__ = "Dennis van Gils"
 __authoremail__ = "vangils.dennis@gmail.com"
-__url__ = "https://github.com/Dennis-van-Gils/project-humidity-controller"
-__date__ = "21-01-2021"
+__url__ = "https://github.com/Dennis-van-Gils/project-Humidistat"
+__date__ = "22-01-2021"
 __version__ = "1.0"
 # pylint: disable=bare-except, broad-except
 
@@ -169,7 +171,7 @@ class MainWindow(QtWid.QWidget):
     def __init__(self, parent=None, **kwargs):
         super().__init__(parent, **kwargs)
 
-        self.setWindowTitle("Humidity controller")
+        self.setWindowTitle("Humidistat")
         self.setGeometry(350, 60, 1200, 900)
         self.setStyleSheet(
             controls.SS_TEXTBOX_READ_ONLY
@@ -193,7 +195,7 @@ class MainWindow(QtWid.QWidget):
 
         # Middle box
         self.qlbl_title = QtWid.QLabel(
-            "Humidity controller",
+            "Humidistat",
             font=QtGui.QFont("Palatino", 14, weight=QtGui.QFont.Bold),
         )
         self.qlbl_title.setAlignment(QtCore.Qt.AlignCenter)
@@ -686,7 +688,7 @@ if __name__ == "__main__":
     # --------------------------------------------------------------------------
 
     # Arduino
-    ard = Arduino(name="Ard", connect_to_specific_ID="Humidity controller")
+    ard = Arduino(name="Ard", connect_to_specific_ID="Humidistat v1")
     ard.serial_settings["baudrate"] = 115200
     ard.auto_connect(filepath_last_known_port="config/port_Arduino.txt")
 

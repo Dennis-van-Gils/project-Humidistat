@@ -1,5 +1,5 @@
 /*******************************************************************************
-  Humidity controller
+  Humidistat v1
 
   Hardware & pin out
   ------------------
@@ -18,9 +18,9 @@
     - Green: All okay and idling
   Every read out, the LED will flash brightly turquoise.
 
-  https://github.com/Dennis-van-Gils/project-humidity-controller
+  https://github.com/Dennis-van-Gils/project-Humidistat
   Dennis van Gils
-  21-01-2022
+  22-01-2022
 *******************************************************************************/
 
 #include <Arduino.h>
@@ -215,7 +215,7 @@ void loop() {
     str_cmd = sc.getCmd();
 
     if (strcmp(str_cmd, "id?") == 0) {
-      Serial.println("Arduino, Humidity controller");
+      Serial.println("Arduino, Humidistat v1");
 
     } else if (strncmp(str_cmd, "v1", 2) == 0) { // Turn valve 1 on/off
       request.valve_1 = parseBoolInString(str_cmd, 2);
