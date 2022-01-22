@@ -154,7 +154,7 @@ class MainWindow(QtWid.QWidget):
         self.setGeometry(350, 60, 1200, 900)
         self.setStyleSheet(
             controls.SS_TEXTBOX_READ_ONLY
-            + controls.SS_GROUP_RECT
+            + controls.SS_GROUP
             + controls.SS_HOVER
         )
 
@@ -245,27 +245,27 @@ class MainWindow(QtWid.QWidget):
 
         self.curve_humi_1 = HistoryChartCurve(
             capacity=capacity,
-            linked_curve=self.pi_humi.plot(pen=PEN_01, name="H"),
+            linked_curve=self.pi_humi.plot(pen=PEN_01, name="H_1"),
         )
         self.curve_temp_1 = HistoryChartCurve(
             capacity=capacity,
-            linked_curve=self.pi_temp.plot(pen=PEN_01, name="T"),
+            linked_curve=self.pi_temp.plot(pen=PEN_01, name="T_1"),
         )
         self.curve_pres_1 = HistoryChartCurve(
             capacity=capacity,
-            linked_curve=self.pi_pres.plot(pen=PEN_01, name="P"),
+            linked_curve=self.pi_pres.plot(pen=PEN_01, name="P_1"),
         )
         self.curve_humi_2 = HistoryChartCurve(
             capacity=capacity,
-            linked_curve=self.pi_humi.plot(pen=PEN_02, name="H"),
+            linked_curve=self.pi_humi.plot(pen=PEN_02, name="H_2"),
         )
         self.curve_temp_2 = HistoryChartCurve(
             capacity=capacity,
-            linked_curve=self.pi_temp.plot(pen=PEN_02, name="T"),
+            linked_curve=self.pi_temp.plot(pen=PEN_02, name="T_2"),
         )
         self.curve_pres_2 = HistoryChartCurve(
             capacity=capacity,
-            linked_curve=self.pi_pres.plot(pen=PEN_02, name="P"),
+            linked_curve=self.pi_pres.plot(pen=PEN_02, name="P_2"),
         )
 
         self.curves_1 = [
