@@ -90,3 +90,9 @@ class Humidistat_qdev(QDeviceIO):
 
     def turn_pump_on(self):
         self.send(self.dev.write, "p1")
+
+    def burst_valve_1(self):
+        self.send(self.dev.write, "b1")
+
+    def burst_valve_2(self):
+        self.send(self.dev.write, "b2")

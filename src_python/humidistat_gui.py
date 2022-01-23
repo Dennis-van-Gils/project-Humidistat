@@ -361,6 +361,12 @@ class MainWindow(QtWid.QWidget):
                     "x_axis_range": (-60, 0),
                 },
                 {
+                    "button_label": "03:00",
+                    "x_axis_label": "sec",
+                    "x_axis_divisor": 1,
+                    "x_axis_range": (-180, 0),
+                },
+                {
                     "button_label": "10:00",
                     "x_axis_label": "min",
                     "x_axis_divisor": 60,
@@ -415,10 +421,17 @@ class MainWindow(QtWid.QWidget):
             else ard_qdev.turn_pump_on()
         )
 
+        self.qpbt_burst_1 = QtWid.QPushButton("burst valve 1")
+        self.qpbt_burst_2 = QtWid.QPushButton("burst valve 2")
+        self.qpbt_burst_1.clicked.connect(ard_qdev.burst_valve_1)
+        self.qpbt_burst_2.clicked.connect(ard_qdev.burst_valve_2)
+
         grid = QtWid.QGridLayout()
         grid.addWidget(self.qpbt_valve_1, 0, 0)
         grid.addWidget(self.qpbt_valve_2, 1, 0)
         grid.addWidget(self.qpbt_pump, 2, 0)
+        grid.addWidget(self.qpbt_burst_1, 3, 0)
+        grid.addWidget(self.qpbt_burst_2, 4, 0)
 
         qgrp_control = QtWid.QGroupBox("Control")
         qgrp_control.setLayout(grid)
@@ -501,10 +514,10 @@ class MainWindow(QtWid.QWidget):
         if self.logger.is_recording():
             self.qlbl_recording_time.setText(self.logger.pretty_elapsed())
 
-        self.qlin_humi_1.setText("%.0f" % state.humi_1)
+        self.qlin_humi_1.setText("%.1f" % state.humi_1)
         self.qlin_temp_1.setText("%.1f" % state.temp_1)
         self.qlin_pres_1.setText("%.0f" % state.pres_1)
-        self.qlin_humi_2.setText("%.0f" % state.humi_2)
+        self.qlin_humi_2.setText("%.1f" % state.humi_2)
         self.qlin_temp_2.setText("%.1f" % state.temp_2)
         self.qlin_pres_2.setText("%.0f" % state.pres_2)
 

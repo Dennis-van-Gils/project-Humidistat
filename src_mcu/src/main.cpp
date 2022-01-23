@@ -210,6 +210,14 @@ void loop() {
   static uint32_t t_0 = now;
   static uint32_t tick = now;
 
+  // Short burst control
+  const uint32_t T_burst_1 = 500;  // [ms]
+  const uint32_t T_burst_2 = 1000; // [ms]
+  static bool burst_valve_1 = false;
+  static bool burst_valve_2 = false;
+  static uint32_t t_burst_valve_1 = 0;
+  static uint32_t t_burst_valve_2 = 0;
+
   // Process incoming serial commands
   if (sc.available()) {
     str_cmd = sc.getCmd();
@@ -217,19 +225,39 @@ void loop() {
     if (strcmp(str_cmd, "id?") == 0) {
       Serial.println("Arduino, Humidistat v1");
 
-    } else if (strncmp(str_cmd, "v1", 2) == 0) { // Turn valve 1 on/off
+    } else if (strcmp(str_cmd, "b1") == 0) {
+      // Turn valve 1 & pump on for a short fixed duration, aka 'burst'
+      burst_valve_1 = true;
+      t_burst_valve_1 = now;
+      request.valve_1 = true;
+      request.pump = true;
+      update_actuators();
+
+    } else if (strcmp(str_cmd, "b2") == 0) {
+      // Turn valve 2 & pump on for a short fixed duration, aka 'burst'
+      burst_valve_2 = true;
+      t_burst_valve_2 = now;
+      request.valve_2 = true;
+      request.pump = true;
+      update_actuators();
+
+    } else if (strncmp(str_cmd, "v1", 2) == 0) {
+      // Turn valve 1 on/off
       request.valve_1 = parseBoolInString(str_cmd, 2);
       update_actuators();
 
-    } else if (strncmp(str_cmd, "v2", 2) == 0) { // Turn valve 2 on/off
+    } else if (strncmp(str_cmd, "v2", 2) == 0) {
+      // Turn valve 2 on/off
       request.valve_2 = parseBoolInString(str_cmd, 2);
       update_actuators();
 
-    } else if (strncmp(str_cmd, "p", 1) == 0) { // Turn pump on/off
+    } else if (strncmp(str_cmd, "p", 1) == 0) {
+      // Turn pump on/off
       request.pump = parseBoolInString(str_cmd, 1);
       update_actuators();
 
-    } else if (strcmp(str_cmd, "r") == 0) { // Try to reconnect to BME280's
+    } else if (strcmp(str_cmd, "r") == 0) {
+      // Try to reconnect to BME280's
       connect_BME280_sensors();
 
     } else if (strcmp(str_cmd, "c") == 0) {
@@ -243,6 +271,22 @@ void loop() {
     }
   }
 
+  // Burst control
+  if (burst_valve_1 && (now - t_burst_valve_1 > T_burst_1)) {
+    burst_valve_1 = false;
+    request.valve_1 = false;
+    request.pump = false;
+    update_actuators();
+  }
+
+  if (burst_valve_2 && (now - t_burst_valve_2 > T_burst_2)) {
+    burst_valve_2 = false;
+    request.valve_2 = false;
+    request.pump = false;
+    update_actuators();
+  }
+
+  // DAQ
   if (now - tick >= DAQ_PERIOD) {
     tick += DAQ_PERIOD; // Strict-interval time keeping
     if (reporting_continuously) { perform_measurement_and_report(now, t_0); }
