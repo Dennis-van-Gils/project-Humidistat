@@ -88,6 +88,7 @@ def apply_PlotItem_style(
     pi.enableAutoRange(axis=pg.ViewBox.YAxis, enable=True)
     pi.setAutoVisible(y=True)
     pi.setRange(xRange=[-CHART_HISTORY_TIME, 0])
+    pi.vb.setLimits(xMax=0.01)
 
     p_title = {
         "color": controls.COLOR_GRAPH_FG.name(),
