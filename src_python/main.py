@@ -23,7 +23,7 @@ from dvg_pyqt_filelogger import FileLogger
 from dvg_debug_functions import dprint, print_fancy_traceback as pft
 
 from dvg_devices.Arduino_protocol_serial import Arduino
-from humidistat_qdev import Humidistat_qdev
+from humidistat_qdev import Humidistat_qdev, ControlMode, ControlBand
 from humidistat_gui import MainWindow
 
 
@@ -86,8 +86,8 @@ def about_to_quit():
 
 def DAQ_function():
     # Shorthands
-    state: ard_qdev.State = ard_qdev.state
-    config: ard_qdev.Config = ard_qdev.config
+    state = ard_qdev.state
+    config = ard_qdev.config
 
     # Date-time keeping
     str_cur_date, str_cur_time = current_date_time_strings()
@@ -131,6 +131,32 @@ def DAQ_function():
 
     # We will use PC time instead
     state.time = time.perf_counter()
+
+    # Control mechanism
+    sp = state.setpoint
+    humi = state.humi_1 if config.act_on_sensor_no == 1 else state.humi_2
+    if (humi > sp + config.deadband_dLO) & (humi < sp + config.deadband_dHI):
+        state.control_band = ControlBand.Dead
+    elif (humi > sp + config.fineband_dLO) & (humi < sp + config.fineband_dHI):
+        state.control_band = ControlBand.Fine
+    else:
+        state.control_band = ControlBand.Coarse
+
+    if state.control_mode == ControlMode.Auto:
+        if state.control_band == ControlBand.Coarse:
+            if humi < sp:
+                ard_qdev.set_valve_1(config.actuators_incr.ENA_valve_1)
+                ard_qdev.set_valve_2(config.actuators_incr.ENA_valve_2)
+                ard_qdev.set_pump(config.actuators_incr.ENA_pump)
+            else:
+                ard_qdev.set_valve_1(config.actuators_decr.ENA_valve_1)
+                ard_qdev.set_valve_2(config.actuators_decr.ENA_valve_2)
+                ard_qdev.set_pump(config.actuators_decr.ENA_pump)
+        else:
+            # DEBUG: Set to False for the time being
+            ard_qdev.set_valve_1(False)
+            ard_qdev.set_valve_2(False)
+            ard_qdev.set_pump(False)
 
     # Add readings to chart histories
     window.curve_humi_1.appendData(state.time, state.humi_1)

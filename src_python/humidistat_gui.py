@@ -40,7 +40,7 @@ from dvg_pyqtgraph_threadsafe import (
 )
 
 from dvg_devices.Arduino_protocol_serial import Arduino
-from humidistat_qdev import Humidistat_qdev, ControlMode
+from humidistat_qdev import Humidistat_qdev, ControlMode, ControlBand
 
 
 # Constants
@@ -424,7 +424,7 @@ class MainWindow(QWidget):
         p = {"maximumWidth": ex10 / 2, "alignment": QtCore.Qt.AlignRight}
         self.qlin_setpoint = QLineEdit(**p)
         self.qlin_setpoint.editingFinished.connect(self.process_qlin_setpoint)
-        self.qlin_band = QLineEdit(
+        self.qlin_control_band = QLineEdit(
             readOnly=True, maximumWidth=80, alignment=QtCore.Qt.AlignHCenter
         )
 
@@ -463,7 +463,7 @@ class MainWindow(QWidget):
         grid.addWidget(self.qlin_setpoint    , i, 1)
         grid.addWidget(QLabel("% RH")        , i, 2)      ; i +=1
         grid.addWidget(QLabel("Band:")       , i, 0)
-        grid.addWidget(self.qlin_band        , i, 1, 1, 2); i +=1
+        grid.addWidget(self.qlin_control_band, i, 1, 1, 2); i +=1
         grid.addItem(QSpacerItem(0, 8)       , i, 0)      ; i +=1
         grid.addWidget(self.qpbt_control_mode, i, 0, 1, 3); i +=1
         grid.addWidget(QLabel("valve 1")     , i, 0)
@@ -494,6 +494,8 @@ class MainWindow(QWidget):
         self.qrbt_act_on_sensor_1  = QRadioButton("sensor 1")
         self.qrbt_act_on_sensor_2  = QRadioButton("sensor 2")
         # fmt: on
+
+        # TODO: Add processing of above controls
 
         p = {"maximumWidth": ex8, "alignment": QtCore.Qt.AlignRight}
         self.qlin_fineband_dHI = QLineEdit(**p)
@@ -676,6 +678,13 @@ class MainWindow(QWidget):
         self.qlin_temp_2.setText("%.1f" % state.temp_2)
         self.qlin_pres_2.setText("%.0f" % state.pres_2)
 
+        if state.control_band == ControlBand.Coarse:
+            self.qlin_control_band.setText("COARSE")
+        elif state.control_band == ControlBand.Fine:
+            self.qlin_control_band.setText("FINE")
+        elif state.control_band == ControlBand.Dead:
+            self.qlin_control_band.setText("DEAD")
+
         self.qpbt_valve_1.setChecked(state.valve_1)
         self.qpbt_valve_1.setText("ON" if state.valve_1 else "OFF")
         self.qpbt_valve_2.setChecked(state.valve_2)
@@ -691,7 +700,7 @@ class MainWindow(QWidget):
 
     @QtCore.pyqtSlot()
     def populate_configuration(self):
-        # Short-hands
+        # Shorthands
         state = self.ard_qdev.state
         config = self.ard_qdev.config
 
@@ -741,7 +750,7 @@ class MainWindow(QWidget):
         if self.qpbt_control_mode.isChecked():
             # Switch to auto control
             self.qpbt_control_mode.setText("Auto control")
-            self.ard_qdev.state.control_mode = ControlMode.Auto_Coarse
+            self.ard_qdev.state.control_mode = ControlMode.Auto
         else:
             # Switch to manual control
             self.qpbt_control_mode.setText("Manual control")

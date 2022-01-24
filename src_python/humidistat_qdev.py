@@ -18,12 +18,14 @@ from dvg_qdeviceio import QDeviceIO
 
 
 class ControlMode(Enum):
-    # fmt: off
-    Manual      = 0
-    Auto_Coarse = 1
-    Auto_Fine   = 2
-    Auto_Dead   = 3
-    # fmt: on
+    Manual = 0
+    Auto = 1
+
+
+class ControlBand(Enum):
+    Coarse = 0
+    Fine = 1
+    Dead = 2
 
 
 class ActuatorManager:
@@ -56,6 +58,7 @@ class Humidistat_qdev(QDeviceIO):
             # Control
             self.setpoint = 50  # [% RH]
             self.control_mode = ControlMode.Manual
+            self.control_band = ControlBand.Coarse
 
     class Config(object):
         def __init__(self):
@@ -105,6 +108,15 @@ class Humidistat_qdev(QDeviceIO):
     # --------------------------------------------------------------------------
     #   Arduino communication functions
     # --------------------------------------------------------------------------
+
+    def set_valve_1(self, flag: bool):
+        self.send(self.dev.write, "v1%u" % flag)
+
+    def set_valve_2(self, flag: bool):
+        self.send(self.dev.write, "v2%u" % flag)
+
+    def set_pump(self, flag: bool):
+        self.send(self.dev.write, "p%u" % flag)
 
     def turn_valve_1_off(self):
         self.send(self.dev.write, "v10")
