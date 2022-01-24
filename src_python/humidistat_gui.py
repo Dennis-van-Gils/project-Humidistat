@@ -11,6 +11,7 @@ __date__ = "22-01-2021"
 __version__ = "1.0"
 # pylint: disable=bare-except, broad-except, unnecessary-lambda
 
+from ctypes import alignment
 from PyQt5 import QtCore, QtGui
 from PyQt5.QtCore import QDateTime
 from PyQt5.QtWidgets import (
@@ -344,9 +345,10 @@ class MainWindow(QWidget):
         legend_2.grid.setColumnStretch(1, 0)
         # fmt: on
 
-        vbox = QVBoxLayout()
+        vbox = QVBoxLayout(spacing=4)
         vbox.addWidget(QLabel("<b>Sensor #1</b>"))
         vbox.addLayout(legend_1.grid)
+        vbox.addSpacing(6)
         vbox.addWidget(QLabel("<b>Sensor #2</b>"))
         vbox.addLayout(legend_2.grid)
 
@@ -357,6 +359,7 @@ class MainWindow(QWidget):
         # -------------------------
 
         self.qtxt_comments = QTextEdit()
+        self.qtxt_comments.setMinimumHeight(60)
         grid = QGridLayout()
         grid.addWidget(self.qtxt_comments, 0, 0)
 
@@ -419,15 +422,23 @@ class MainWindow(QWidget):
         #  Group 'Control'
         # -------------------------
 
-        p = {"maximumWidth": ex8, "alignment": QtCore.Qt.AlignRight}
+        p = {"maximumWidth": ex10 / 2, "alignment": QtCore.Qt.AlignRight}
         self.qlin_setpoint = QLineEdit("50", **p)
+
+        # Operating band: 'COARSE', 'FINE' or 'DEAD'
+        self.qlin_band = QLineEdit(
+            "COARSE",
+            readOnly=True,
+            maximumWidth=80,
+            alignment=QtCore.Qt.AlignHCenter,
+        )
 
         self.qpbt_control_mode = controls.create_Toggle_button("Manual control")
         self.qpbt_control_mode.clicked.connect(self.process_qpbt_control_mode)
 
-        self.qpbt_valve_1 = controls.create_Toggle_button()
-        self.qpbt_valve_2 = controls.create_Toggle_button()
-        self.qpbt_pump = controls.create_Toggle_button()
+        self.qpbt_valve_1 = controls.create_Toggle_button(maximumWidth=80)
+        self.qpbt_valve_2 = controls.create_Toggle_button(maximumWidth=80)
+        self.qpbt_pump = controls.create_Toggle_button(maximumWidth=80)
 
         self.qpbt_valve_1.clicked.connect(
             lambda: ard_qdev.turn_valve_1_off()
@@ -445,23 +456,20 @@ class MainWindow(QWidget):
             else ard_qdev.turn_pump_on()
         )
 
-        self.qpbt_burst_incr = QPushButton("incr. RH burst")
-        self.qpbt_burst_decr = QPushButton("decr. RH burst")
+        self.qpbt_burst_incr = QPushButton("RH ▲ burst")
+        self.qpbt_burst_decr = QPushButton("RH ▼ burst")
         self.qpbt_burst_incr.clicked.connect(ard_qdev.burst_valve_1)
         self.qpbt_burst_decr.clicked.connect(ard_qdev.burst_valve_2)
-
-        # Operating band: 'COARSE', 'FINE' or 'DEAD'
-        self.qlin_band = QLineEdit("COARSE", readOnly=True, maximumWidth=100)
 
         # fmt: off
         i = 0
         grid = QGridLayout(spacing=4)
-        grid.addWidget(QLabel("setpoint:")   , i, 0)
+        grid.addWidget(QLabel("Setpoint:")   , i, 0)
         grid.addWidget(self.qlin_setpoint    , i, 1)
         grid.addWidget(QLabel("% RH")        , i, 2)      ; i +=1
-        grid.addWidget(QLabel("band:")       , i, 0)
+        grid.addWidget(QLabel("Band:")       , i, 0)
         grid.addWidget(self.qlin_band        , i, 1, 1, 2); i +=1
-        grid.addItem(QSpacerItem(0, 6)       , i, 0)      ; i +=1
+        grid.addItem(QSpacerItem(0, 8)       , i, 0)      ; i +=1
         grid.addWidget(self.qpbt_control_mode, i, 0, 1, 3); i +=1
         grid.addWidget(QLabel("valve 1")     , i, 0)
         grid.addWidget(self.qpbt_valve_1     , i, 1, 1, 2); i +=1
@@ -503,60 +511,65 @@ class MainWindow(QWidget):
 
         # fmt: off
         i = 0
-        p = {"alignment": QtCore.Qt.AlignHCenter}
+        grid2 = QGridLayout(spacing=4)
+        grid2.addWidget(QLabel("<b>Control bandwidths</b>"), i, 0, 1, 3); i+=1
+        grid2.addWidget(QLabel("Fine-band:")             , i, 0)
+        grid2.addWidget(self.qlin_fineband_delta_LO      , i, 1)
+        grid2.addWidget(self.qlin_fineband_delta_HI      , i, 2)
+        grid2.addWidget(QLabel("% RH")                   , i, 3)      ; i+=1
+        grid2.addWidget(QLabel("Dead-band:")             , i, 0)
+        grid2.addWidget(self.qlin_deadband_delta_LO      , i, 1)
+        grid2.addWidget(self.qlin_deadband_delta_HI      , i, 2)
+        grid2.addWidget(QLabel("% RH")                   , i, 3)      ; i+=1
+        grid2.addItem(QSpacerItem(0, 6)                  , i, 0)      ; i+=1
+        grid2.addWidget(QLabel("<b>Fine-band bursts</b>"), i, 0, 1, 3); i+=1
+        grid2.addWidget(QLabel("Update period:")         , i, 0, 1, 2)
+        grid2.addWidget(self.qlin_burst_update_period    , i, 2)
+        grid2.addWidget(QLabel("s")                      , i, 3)      ; i+=1
+        grid2.addWidget(QLabel("RH ▲ burst length:")     , i, 0, 1, 2)
+        grid2.addWidget(self.qlin_incr_RH_burst_duration , i, 2)
+        grid2.addWidget(QLabel("ms")                     , i, 3)      ; i+=1
+        grid2.addWidget(QLabel("RH ▼ burst length:")     , i, 0, 1, 2)
+        grid2.addWidget(self.qlin_decr_RH_burst_duration , i, 2)
+        grid2.addWidget(QLabel("ms")                     , i, 3)      ; i+=1
+
+        i = 0
         grid = QGridLayout(spacing=4)
-        grid.addWidget(QLabel("<b>Actuator setup</b>")  , i, 0, 1, 3); i+=1
-        grid.addWidget(QLabel("incr. RH:")              , i, 0)
+        grid.addWidget(QLabel("<b>Assign actuators</b>"), i, 0, 1, 3); i+=1
+        grid.addWidget(QLabel("RH ▲:")                  , i, 0)
         grid.addWidget(self.qchk_incr_RH_valve_1        , i, 1)
-        grid.addWidget(QLabel("decr. RH:")              , i, 2)
+        grid.addWidget(QLabel("RH ▼:")                  , i, 2)
         grid.addWidget(self.qchk_decr_RH_valve_1        , i, 3)      ; i+=1
         grid.addWidget(self.qchk_incr_RH_valve_2        , i, 1)
         grid.addWidget(self.qchk_decr_RH_valve_2        , i, 3)      ; i+=1
         grid.addWidget(self.qchk_incr_RH_pump           , i, 1)
         grid.addWidget(self.qchk_decr_RH_pump           , i, 3)      ; i+=1
         grid.addItem(QSpacerItem(0, 6)                  , i, 0)      ; i+=1
-        grid.addWidget(QLabel("act on:")                , i, 0)
+        grid.addWidget(QLabel("Act on:")                , i, 0)
         grid.addWidget(self.qrbt_act_on_sensor_1        , i, 1, 1, 2); i+=1
         grid.addWidget(self.qrbt_act_on_sensor_2        , i, 1, 1, 2); i+=1
         grid.addItem(QSpacerItem(0, 6)                  , i, 0)      ; i+=1
-        grid.addWidget(QLabel("<b>Control bands</b>")   , i, 0, 1, 3); i+=1
-        grid.addWidget(QLabel("\u0394LO", **p)          , i, 1)
-        grid.addWidget(QLabel("\u0394HI", **p)          , i, 2)      ; i+=1
-        grid.addWidget(QLabel("fine:")                  , i, 0)
-        grid.addWidget(self.qlin_fineband_delta_LO      , i, 1)
-        grid.addWidget(self.qlin_fineband_delta_HI      , i, 2)
-        grid.addWidget(QLabel("% RH")                   , i, 3)      ; i+=1
-        grid.addWidget(QLabel("dead:")                  , i, 0)
-        grid.addWidget(self.qlin_deadband_delta_LO      , i, 1)
-        grid.addWidget(self.qlin_deadband_delta_HI      , i, 2)
-        grid.addWidget(QLabel("% RH")                   , i, 3)      ; i+=1
-        grid.addItem(QSpacerItem(0, 6)                  , i, 0)      ; i+=1
-        grid.addWidget(QLabel("<b>Fine-band bursts</b>"), i, 0, 1, 3); i+=1
-        grid.addWidget(QLabel("update period:")         , i, 0, 1, 2)
-        grid.addWidget(self.qlin_burst_update_period    , i, 2)
-        grid.addWidget(QLabel("s")                      , i, 3)      ; i+=1
-        grid.addWidget(QLabel("incr. RH duration:")     , i, 0, 1, 2)
-        grid.addWidget(self.qlin_incr_RH_burst_duration , i, 2)
-        grid.addWidget(QLabel("ms")                     , i, 3)      ; i+=1
-        grid.addWidget(QLabel("decr. RH duration:")     , i, 0, 1, 2)
-        grid.addWidget(self.qlin_decr_RH_burst_duration , i, 2)
-        grid.addWidget(QLabel("ms")                     , i, 3)      ; i+=1
+        grid.addLayout(grid2                            , i, 0, 1, 4)
 
         # fmt: on
 
-        qgrp_config = QGroupBox("Config")
+        qgrp_config = QGroupBox("Configuration")
         qgrp_config.setLayout(grid)
 
         #  Round up bottom frame
         # -------------------------
 
         hbox1 = QHBoxLayout()
-        hbox1.addWidget(qgrp_readings, alignment=QtCore.Qt.AlignLeft)
-        hbox1.addWidget(qgrp_charts, alignment=QtCore.Qt.AlignLeft)
+        hbox1.addWidget(
+            qgrp_readings, alignment=QtCore.Qt.AlignLeft | QtCore.Qt.AlignTop
+        )
+        hbox1.addWidget(
+            qgrp_control, alignment=QtCore.Qt.AlignLeft  # | QtCore.Qt.AlignTop
+        )
 
         hbox2 = QHBoxLayout()
         hbox2.addWidget(
-            qgrp_control, alignment=QtCore.Qt.AlignLeft | QtCore.Qt.AlignTop
+            qgrp_charts, alignment=QtCore.Qt.AlignLeft | QtCore.Qt.AlignTop
         )
         hbox2.addWidget(
             qgrp_config, alignment=(QtCore.Qt.AlignLeft | QtCore.Qt.AlignTop)
