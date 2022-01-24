@@ -11,7 +11,6 @@ __date__ = "22-01-2021"
 __version__ = "1.0"
 # pylint: disable=bare-except, broad-except, unnecessary-lambda
 
-from ctypes import alignment
 from PyQt5 import QtCore, QtGui
 from PyQt5.QtCore import QDateTime
 from PyQt5.QtWidgets import (
@@ -485,41 +484,63 @@ class MainWindow(QWidget):
         qgrp_control = QGroupBox("Control")
         qgrp_control.setLayout(grid)
 
-        #  Group 'Config'
+        #  Group 'Configuration'
         # -------------------------
 
         # fmt: off
         p = {"maximumWidth": ex10}
-        self.qchk_incr_RH_valve_1 = QCheckBox("valve 1", **p)
-        self.qchk_incr_RH_valve_2 = QCheckBox("valve 2", **p)
-        self.qchk_incr_RH_pump    = QCheckBox("pump"   , **p)
-        self.qchk_decr_RH_valve_1 = QCheckBox("valve 1", **p)
-        self.qchk_decr_RH_valve_2 = QCheckBox("valve 2", **p)
-        self.qchk_decr_RH_pump    = QCheckBox("pump"   , **p)
-        self.qrbt_act_on_sensor_1 = QRadioButton("sensor 1")
-        self.qrbt_act_on_sensor_2 = QRadioButton("sensor 2")
+        self.qchk_incr_ENA_valve_1 = QCheckBox("valve 1", **p)
+        self.qchk_incr_ENA_valve_2 = QCheckBox("valve 2", **p)
+        self.qchk_incr_ENA_pump    = QCheckBox("pump"   , **p)
+        self.qchk_decr_ENA_valve_1 = QCheckBox("valve 1", **p)
+        self.qchk_decr_ENA_valve_2 = QCheckBox("valve 2", **p)
+        self.qchk_decr_ENA_pump    = QCheckBox("pump"   , **p)
+        self.qrbt_act_on_sensor_1  = QRadioButton("sensor 1")
+        self.qrbt_act_on_sensor_2  = QRadioButton("sensor 2")
         # fmt: on
 
         p = {"maximumWidth": ex8, "alignment": QtCore.Qt.AlignRight}
-        self.qlin_fineband_delta_HI = QLineEdit("+2.0", **p)
-        self.qlin_fineband_delta_LO = QLineEdit("-2.0", **p)
-        self.qlin_deadband_delta_HI = QLineEdit("+0.5", **p)
-        self.qlin_deadband_delta_LO = QLineEdit("-0.5", **p)
-        self.qlin_burst_update_period = QLineEdit("10", **p)
-        self.qlin_incr_RH_burst_duration = QLineEdit("500", **p)
-        self.qlin_decr_RH_burst_duration = QLineEdit("1000", **p)
+        self.qlin_fineband_dHI = QLineEdit(**p)
+        self.qlin_fineband_dLO = QLineEdit(**p)
+        self.qlin_deadband_dHI = QLineEdit(**p)
+        self.qlin_deadband_dLO = QLineEdit(**p)
+        self.qlin_burst_update_period = QLineEdit(**p)
+        self.qlin_incr_RH_burst_length = QLineEdit(**p)
+        self.qlin_decr_RH_burst_length = QLineEdit(**p)
+
+        self.qlin_fineband_dHI.editingFinished.connect(
+            self.process_qlin_fineband_dHI
+        )
+        self.qlin_fineband_dLO.editingFinished.connect(
+            self.process_qlin_fineband_dLO
+        )
+        self.qlin_deadband_dHI.editingFinished.connect(
+            self.process_qlin_deadband_dHI
+        )
+        self.qlin_deadband_dLO.editingFinished.connect(
+            self.process_qlin_deadband_dLO
+        )
+        self.qlin_burst_update_period.editingFinished.connect(
+            self.process_qlin_burst_update_period
+        )
+        self.qlin_incr_RH_burst_length.editingFinished.connect(
+            self.process_qlin_incr_RH_burst_length
+        )
+        self.qlin_decr_RH_burst_length.editingFinished.connect(
+            self.process_qlin_decr_RH_burst_length
+        )
 
         # fmt: off
         i = 0
         grid2 = QGridLayout(spacing=4)
         grid2.addWidget(QLabel("<b>Control bandwidths</b>"), i, 0, 1, 3); i+=1
         grid2.addWidget(QLabel("Fine-band:")             , i, 0)
-        grid2.addWidget(self.qlin_fineband_delta_LO      , i, 1)
-        grid2.addWidget(self.qlin_fineband_delta_HI      , i, 2)
+        grid2.addWidget(self.qlin_fineband_dLO           , i, 1)
+        grid2.addWidget(self.qlin_fineband_dHI           , i, 2)
         grid2.addWidget(QLabel("% RH")                   , i, 3)      ; i+=1
         grid2.addWidget(QLabel("Dead-band:")             , i, 0)
-        grid2.addWidget(self.qlin_deadband_delta_LO      , i, 1)
-        grid2.addWidget(self.qlin_deadband_delta_HI      , i, 2)
+        grid2.addWidget(self.qlin_deadband_dLO           , i, 1)
+        grid2.addWidget(self.qlin_deadband_dHI           , i, 2)
         grid2.addWidget(QLabel("% RH")                   , i, 3)      ; i+=1
         grid2.addItem(QSpacerItem(0, 6)                  , i, 0)      ; i+=1
         grid2.addWidget(QLabel("<b>Fine-band bursts</b>"), i, 0, 1, 3); i+=1
@@ -527,23 +548,23 @@ class MainWindow(QWidget):
         grid2.addWidget(self.qlin_burst_update_period    , i, 2)
         grid2.addWidget(QLabel("s")                      , i, 3)      ; i+=1
         grid2.addWidget(QLabel("RH ▲ burst length:")     , i, 0, 1, 2)
-        grid2.addWidget(self.qlin_incr_RH_burst_duration , i, 2)
+        grid2.addWidget(self.qlin_incr_RH_burst_length   , i, 2)
         grid2.addWidget(QLabel("ms")                     , i, 3)      ; i+=1
         grid2.addWidget(QLabel("RH ▼ burst length:")     , i, 0, 1, 2)
-        grid2.addWidget(self.qlin_decr_RH_burst_duration , i, 2)
+        grid2.addWidget(self.qlin_decr_RH_burst_length   , i, 2)
         grid2.addWidget(QLabel("ms")                     , i, 3)      ; i+=1
 
         i = 0
         grid = QGridLayout(spacing=4)
         grid.addWidget(QLabel("<b>Assign actuators</b>"), i, 0, 1, 3); i+=1
         grid.addWidget(QLabel("RH ▲:")                  , i, 0)
-        grid.addWidget(self.qchk_incr_RH_valve_1        , i, 1)
+        grid.addWidget(self.qchk_incr_ENA_valve_1       , i, 1)
         grid.addWidget(QLabel("RH ▼:")                  , i, 2)
-        grid.addWidget(self.qchk_decr_RH_valve_1        , i, 3)      ; i+=1
-        grid.addWidget(self.qchk_incr_RH_valve_2        , i, 1)
-        grid.addWidget(self.qchk_decr_RH_valve_2        , i, 3)      ; i+=1
-        grid.addWidget(self.qchk_incr_RH_pump           , i, 1)
-        grid.addWidget(self.qchk_decr_RH_pump           , i, 3)      ; i+=1
+        grid.addWidget(self.qchk_decr_ENA_valve_1       , i, 3)      ; i+=1
+        grid.addWidget(self.qchk_incr_ENA_valve_2       , i, 1)
+        grid.addWidget(self.qchk_decr_ENA_valve_2       , i, 3)      ; i+=1
+        grid.addWidget(self.qchk_incr_ENA_pump          , i, 1)
+        grid.addWidget(self.qchk_decr_ENA_pump          , i, 3)      ; i+=1
         grid.addItem(QSpacerItem(0, 6)                  , i, 0)      ; i+=1
         grid.addWidget(QLabel("Act on:")                , i, 0)
         grid.addWidget(self.qrbt_act_on_sensor_1        , i, 1, 1, 2); i+=1
@@ -598,6 +619,9 @@ class MainWindow(QWidget):
         vbox.addSpacerItem(QSpacerItem(0, 10))
         vbox.addLayout(grid_bot, stretch=1)
 
+        self.populate_configuration()
+        QtCore.QMetaObject.connectSlotsByName(self)
+
         # -------------------------
         #   Wall clock timer
         # -------------------------
@@ -607,7 +631,7 @@ class MainWindow(QWidget):
         self.timer_wall_clock.start(UPDATE_INTERVAL_WALL_CLOCK)
 
         # -------------------------
-        #   Connect signals
+        #   Connect external signals
         # -------------------------
 
         self.ard_qdev.signal_DAQ_updated.connect(self.update_GUI)
@@ -671,6 +695,37 @@ class MainWindow(QWidget):
             curve.update()
 
     @QtCore.pyqtSlot()
+    def populate_configuration(self):
+        config = self.ard_qdev.config  # Short-hand
+
+        self.qchk_incr_ENA_valve_1.setChecked(config.actuators_incr.ENA_valve_1)
+        self.qchk_incr_ENA_valve_2.setChecked(config.actuators_incr.ENA_valve_2)
+        self.qchk_incr_ENA_pump.setChecked(config.actuators_incr.ENA_pump)
+
+        self.qchk_decr_ENA_valve_1.setChecked(config.actuators_decr.ENA_valve_1)
+        self.qchk_decr_ENA_valve_2.setChecked(config.actuators_decr.ENA_valve_2)
+        self.qchk_decr_ENA_pump.setChecked(config.actuators_decr.ENA_pump)
+
+        self.qrbt_act_on_sensor_1.setChecked(config.act_on_sensor_no == 1)
+        self.qrbt_act_on_sensor_2.setChecked(config.act_on_sensor_no == 2)
+
+        self.qlin_fineband_dHI.setText("%+.1f" % config.fineband_dHI)
+        self.qlin_fineband_dLO.setText("%+.1f" % config.fineband_dLO)
+        self.qlin_deadband_dHI.setText("%+.1f" % config.deadband_dHI)
+        self.qlin_deadband_dLO.setText("%+.1f" % config.deadband_dLO)
+        self.qlin_burst_update_period.setText("%u" % config.burst_update_period)
+        self.qlin_incr_RH_burst_length.setText(
+            "%u" % config.incr_RH_burst_length
+        )
+        self.qlin_decr_RH_burst_length.setText(
+            "%u" % config.decr_RH_burst_length
+        )
+
+    # --------------------------------------------------------------------------
+    #   Handle controls
+    # --------------------------------------------------------------------------
+
+    @QtCore.pyqtSlot()
     def process_qpbt_control_mode(self):
         if self.qpbt_control_mode.isChecked():
             # Switch to auto control
@@ -690,3 +745,80 @@ class MainWindow(QWidget):
         self.qpbt_pump.setEnabled(flag)
         self.qpbt_burst_incr.setEnabled(flag)
         self.qpbt_burst_decr.setEnabled(flag)
+
+    @QtCore.pyqtSlot()
+    def process_qlin_fineband_dHI(self):
+        try:
+            val = float(self.qlin_fineband_dHI.text())
+        except ValueError:
+            val = self.ard_qdev.config.fineband_dHI
+
+        val = max(val, 0)
+        self.qlin_fineband_dHI.setText("%+.1f" % val)
+        self.ard_qdev.config.fineband_dHI = val
+
+    @QtCore.pyqtSlot()
+    def process_qlin_fineband_dLO(self):
+        try:
+            val = float(self.qlin_fineband_dLO.text())
+        except ValueError:
+            val = self.ard_qdev.config.fineband_dLO
+
+        val = -val if val > 0 else val
+        self.qlin_fineband_dLO.setText("%+.1f" % val)
+        self.ard_qdev.config.fineband_dLO = val
+
+    @QtCore.pyqtSlot()
+    def process_qlin_deadband_dHI(self):
+        try:
+            val = float(self.qlin_deadband_dHI.text())
+        except ValueError:
+            val = self.ard_qdev.config.deadband_dHI
+
+        val = max(val, 0)
+        self.qlin_deadband_dHI.setText("%+.1f" % val)
+        self.ard_qdev.config.deadband_dHI = val
+
+    @QtCore.pyqtSlot()
+    def process_qlin_deadband_dLO(self):
+        try:
+            val = float(self.qlin_deadband_dLO.text())
+        except ValueError:
+            val = self.ard_qdev.config.deadband_dLO
+
+        val = -val if val > 0 else val
+        self.qlin_deadband_dLO.setText("%+.1f" % val)
+        self.ard_qdev.config.deadband_dLO = val
+
+    @QtCore.pyqtSlot()
+    def process_qlin_burst_update_period(self):
+        try:
+            val = int(self.qlin_burst_update_period.text())
+        except ValueError:
+            val = self.ard_qdev.config.burst_update_period
+
+        val = max(val, 1)
+        self.qlin_burst_update_period.setText("%u" % val)
+        self.ard_qdev.config.burst_update_period = val
+
+    @QtCore.pyqtSlot()
+    def process_qlin_incr_RH_burst_length(self):
+        try:
+            val = int(self.qlin_incr_RH_burst_length.text())
+        except ValueError:
+            val = self.ard_qdev.config.incr_RH_burst_length
+
+        val = max(val, 500)
+        self.qlin_incr_RH_burst_length.setText("%u" % val)
+        self.ard_qdev.config.incr_RH_burst_length = val
+
+    @QtCore.pyqtSlot()
+    def process_qlin_decr_RH_burst_length(self):
+        try:
+            val = int(self.qlin_decr_RH_burst_length.text())
+        except ValueError:
+            val = self.ard_qdev.config.decr_RH_burst_length
+
+        val = max(val, 500)
+        self.qlin_decr_RH_burst_length.setText("%u" % val)
+        self.ard_qdev.config.decr_RH_burst_length = val

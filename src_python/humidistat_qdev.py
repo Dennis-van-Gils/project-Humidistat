@@ -30,23 +30,16 @@ class ActuatorManager:
     """Holds which actuators to enable to either increase or decrease the
     humidity. Hence, two instances of this class should be created."""
 
-    def __init__(self):
-        self.ENA_valve_1 = False
-        self.ENA_valve_2 = False
-        self.ENA_pump = False
-
-    def reset(self):
-        self.ENA_valve_1 = False
-        self.ENA_valve_2 = False
-        self.ENA_pump = False
+    def __init__(
+        self, valve_1: bool = False, valve_2: bool = False, pump: bool = False
+    ):
+        self.ENA_valve_1 = valve_1
+        self.ENA_valve_2 = valve_2
+        self.ENA_pump = pump
 
 
 class Humidistat_qdev(QDeviceIO):
     class State(object):
-        """Reflects the actual readings, parsed into separate variables, of the
-        Arduino. There should only be one instance of the State class.
-        """
-
         def __init__(self):
             # Actual readings of the Arduino
             self.time = np.nan  # [s]
@@ -60,32 +53,28 @@ class Humidistat_qdev(QDeviceIO):
             self.pres_1 = np.nan  # [mbar]
             self.pres_2 = np.nan  # [mbar]
 
-            # Controller mode
+            # Control
+            self.setpoint = np.nan  # [% RH]
             self.control_mode = ControlMode.Manual
 
     class Config(object):
-        """"""
-
         def __init__(self):
             # fmt: off
-            # Setpoint
-            self.setpoint = np.nan         # [% RH]
-
             # Actuators
-            self.actuators_incr_RH = ActuatorManager()
-            self.actuators_decr_RH = ActuatorManager()
-            self.act_on_sensor_no = 1      # [1 or 2]
+            self.actuators_incr = ActuatorManager(True, False, True)
+            self.actuators_decr = ActuatorManager(False, True, True)
+            self.act_on_sensor_no = 1  # [1 or 2]
 
             # Bandwidths
-            self.fineband_delta_HI = +2    # [% RH]
-            self.fineband_delta_LO = -2    # [% RH]
-            self.deadband_delta_HI = +0.5  # [% RH]
-            self.deadband_delta_LO = -0.5  # [% RH]
+            self.fineband_dHI = +2     # [% RH]
+            self.fineband_dLO = -2     # [% RH]
+            self.deadband_dHI = +0.5   # [% RH]
+            self.deadband_dLO = -0.5   # [% RH]
 
             # Fine 'burst' control mode
-            self.burst_check_period = 10        # [s]
-            self.incr_RH_burst_duration = 500   # [ms]
-            self.decr_RH_burst_duration = 1000  # [ms]
+            self.burst_update_period = 10     # [s]
+            self.incr_RH_burst_length = 500   # [ms]
+            self.decr_RH_burst_length = 1000  # [ms]
             # fmt: on
 
     # --------------------------------------------------------------------------
