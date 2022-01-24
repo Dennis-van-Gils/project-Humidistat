@@ -422,14 +422,10 @@ class MainWindow(QWidget):
         # -------------------------
 
         p = {"maximumWidth": ex10 / 2, "alignment": QtCore.Qt.AlignRight}
-        self.qlin_setpoint = QLineEdit("50", **p)
-
-        # Operating band: 'COARSE', 'FINE' or 'DEAD'
+        self.qlin_setpoint = QLineEdit(**p)
+        self.qlin_setpoint.editingFinished.connect(self.process_qlin_setpoint)
         self.qlin_band = QLineEdit(
-            "COARSE",
-            readOnly=True,
-            maximumWidth=80,
-            alignment=QtCore.Qt.AlignHCenter,
+            readOnly=True, maximumWidth=80, alignment=QtCore.Qt.AlignHCenter
         )
 
         self.qpbt_control_mode = controls.create_Toggle_button("Manual control")
@@ -534,25 +530,25 @@ class MainWindow(QWidget):
         i = 0
         grid2 = QGridLayout(spacing=4)
         grid2.addWidget(QLabel("<b>Control bandwidths</b>"), i, 0, 1, 3); i+=1
-        grid2.addWidget(QLabel("Fine-band:")             , i, 0)
-        grid2.addWidget(self.qlin_fineband_dLO           , i, 1)
-        grid2.addWidget(self.qlin_fineband_dHI           , i, 2)
-        grid2.addWidget(QLabel("% RH")                   , i, 3)      ; i+=1
-        grid2.addWidget(QLabel("Dead-band:")             , i, 0)
-        grid2.addWidget(self.qlin_deadband_dLO           , i, 1)
-        grid2.addWidget(self.qlin_deadband_dHI           , i, 2)
-        grid2.addWidget(QLabel("% RH")                   , i, 3)      ; i+=1
-        grid2.addItem(QSpacerItem(0, 6)                  , i, 0)      ; i+=1
-        grid2.addWidget(QLabel("<b>Fine-band bursts</b>"), i, 0, 1, 3); i+=1
-        grid2.addWidget(QLabel("Update period:")         , i, 0, 1, 2)
-        grid2.addWidget(self.qlin_burst_update_period    , i, 2)
-        grid2.addWidget(QLabel("s")                      , i, 3)      ; i+=1
-        grid2.addWidget(QLabel("RH ▲ burst length:")     , i, 0, 1, 2)
-        grid2.addWidget(self.qlin_incr_RH_burst_length   , i, 2)
-        grid2.addWidget(QLabel("ms")                     , i, 3)      ; i+=1
-        grid2.addWidget(QLabel("RH ▼ burst length:")     , i, 0, 1, 2)
-        grid2.addWidget(self.qlin_decr_RH_burst_length   , i, 2)
-        grid2.addWidget(QLabel("ms")                     , i, 3)      ; i+=1
+        grid2.addWidget(QLabel("Fine-band:")               , i, 0)
+        grid2.addWidget(self.qlin_fineband_dLO             , i, 1)
+        grid2.addWidget(self.qlin_fineband_dHI             , i, 2)
+        grid2.addWidget(QLabel("% RH")                     , i, 3)      ; i+=1
+        grid2.addWidget(QLabel("Dead-band:")               , i, 0)
+        grid2.addWidget(self.qlin_deadband_dLO             , i, 1)
+        grid2.addWidget(self.qlin_deadband_dHI             , i, 2)
+        grid2.addWidget(QLabel("% RH")                     , i, 3)      ; i+=1
+        grid2.addItem(QSpacerItem(0, 6)                    , i, 0)      ; i+=1
+        grid2.addWidget(QLabel("<b>Fine-band bursts</b>")  , i, 0, 1, 3); i+=1
+        grid2.addWidget(QLabel("Update period:")           , i, 0, 1, 2)
+        grid2.addWidget(self.qlin_burst_update_period      , i, 2)
+        grid2.addWidget(QLabel("s")                        , i, 3)      ; i+=1
+        grid2.addWidget(QLabel("RH ▲ burst length:")       , i, 0, 1, 2)
+        grid2.addWidget(self.qlin_incr_RH_burst_length     , i, 2)
+        grid2.addWidget(QLabel("ms")                       , i, 3)      ; i+=1
+        grid2.addWidget(QLabel("RH ▼ burst length:")       , i, 0, 1, 2)
+        grid2.addWidget(self.qlin_decr_RH_burst_length     , i, 2)
+        grid2.addWidget(QLabel("ms")                       , i, 3)      ; i+=1
 
         i = 0
         grid = QGridLayout(spacing=4)
@@ -571,7 +567,6 @@ class MainWindow(QWidget):
         grid.addWidget(self.qrbt_act_on_sensor_2        , i, 1, 1, 2); i+=1
         grid.addItem(QSpacerItem(0, 6)                  , i, 0)      ; i+=1
         grid.addLayout(grid2                            , i, 0, 1, 4)
-
         # fmt: on
 
         qgrp_config = QGroupBox("Configuration")
@@ -696,7 +691,11 @@ class MainWindow(QWidget):
 
     @QtCore.pyqtSlot()
     def populate_configuration(self):
-        config = self.ard_qdev.config  # Short-hand
+        # Short-hands
+        state = self.ard_qdev.state
+        config = self.ard_qdev.config
+
+        self.qlin_setpoint.setText("%u" % state.setpoint)
 
         self.qchk_incr_ENA_valve_1.setChecked(config.actuators_incr.ENA_valve_1)
         self.qchk_incr_ENA_valve_2.setChecked(config.actuators_incr.ENA_valve_2)
@@ -724,6 +723,18 @@ class MainWindow(QWidget):
     # --------------------------------------------------------------------------
     #   Handle controls
     # --------------------------------------------------------------------------
+
+    @QtCore.pyqtSlot()
+    def process_qlin_setpoint(self):
+        try:
+            val = int(self.qlin_setpoint.text())
+        except ValueError:
+            val = self.ard_qdev.state.setpoint
+
+        val = max(val, 0)
+        val = min(val, 100)
+        self.qlin_setpoint.setText("%u" % val)
+        self.ard_qdev.state.setpoint = val
 
     @QtCore.pyqtSlot()
     def process_qpbt_control_mode(self):

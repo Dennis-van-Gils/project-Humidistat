@@ -54,7 +54,7 @@ class Humidistat_qdev(QDeviceIO):
             self.pres_2 = np.nan  # [mbar]
 
             # Control
-            self.setpoint = np.nan  # [% RH]
+            self.setpoint = 50  # [% RH]
             self.control_mode = ControlMode.Manual
 
     class Config(object):
