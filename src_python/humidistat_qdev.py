@@ -10,10 +10,35 @@ __url__ = "https://github.com/Dennis-van-Gils/project-Humidistat"
 __date__ = "22-01-2021"
 __version__ = "1.0"
 
+from enum import Enum
 import numpy as np
 
 from dvg_devices.Arduino_protocol_serial import Arduino
 from dvg_qdeviceio import QDeviceIO
+
+
+class ControlMode(Enum):
+    # fmt: off
+    Manual      = 0
+    Auto_Coarse = 1
+    Auto_Fine   = 2
+    Auto_Dead   = 3
+    # fmt: on
+
+
+class ActuatorManager:
+    """Holds which actuators to enable to either increase or decrease the
+    humidity. Hence, two instances of this class should be created."""
+
+    def __init__(self):
+        self.ENA_valve_1 = False
+        self.ENA_valve_2 = False
+        self.ENA_pump = False
+
+    def reset(self):
+        self.ENA_valve_1 = False
+        self.ENA_valve_2 = False
+        self.ENA_pump = False
 
 
 class Humidistat_qdev(QDeviceIO):
@@ -23,6 +48,7 @@ class Humidistat_qdev(QDeviceIO):
         """
 
         def __init__(self):
+            # Actual readings of the Arduino
             self.time = np.nan  # [s]
             self.valve_1 = False
             self.valve_2 = False
@@ -34,15 +60,33 @@ class Humidistat_qdev(QDeviceIO):
             self.pres_1 = np.nan  # [mbar]
             self.pres_2 = np.nan  # [mbar]
 
+            # Controller mode
+            self.control_mode = ControlMode.Manual
+
     class Config(object):
         """"""
 
         def __init__(self):
-            # Threshold values
-            self.humi_1_LO = np.nan  # [% RH]
-            self.humi_1_HI = np.nan  # [% RH]
-            self.humi_2_LO = np.nan  # [% RH]
-            self.humi_2_HI = np.nan  # [% RH]
+            # fmt: off
+            # Setpoint
+            self.setpoint = np.nan         # [% RH]
+
+            # Actuators
+            self.actuators_incr_RH = ActuatorManager()
+            self.actuators_decr_RH = ActuatorManager()
+            self.act_on_sensor_no = 1      # [1 or 2]
+
+            # Bandwidths
+            self.fineband_delta_HI = +2    # [% RH]
+            self.fineband_delta_LO = -2    # [% RH]
+            self.deadband_delta_HI = +0.5  # [% RH]
+            self.deadband_delta_LO = -0.5  # [% RH]
+
+            # Fine 'burst' control mode
+            self.burst_check_period = 10        # [s]
+            self.incr_RH_burst_duration = 500   # [ms]
+            self.decr_RH_burst_duration = 1000  # [ms]
+            # fmt: on
 
     # --------------------------------------------------------------------------
     #   Humidistat_qdev

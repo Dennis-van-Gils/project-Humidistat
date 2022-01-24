@@ -12,8 +12,21 @@ __version__ = "1.0"
 # pylint: disable=bare-except, broad-except, unnecessary-lambda
 
 from PyQt5 import QtCore, QtGui
-from PyQt5 import QtWidgets as QtWid
 from PyQt5.QtCore import QDateTime
+from PyQt5.QtWidgets import (
+    QCheckBox,
+    QGridLayout,
+    QGroupBox,
+    QHBoxLayout,
+    QLabel,
+    QLineEdit,
+    QPushButton,
+    QRadioButton,
+    QSpacerItem,
+    QTextEdit,
+    QVBoxLayout,
+    QWidget,
+)
 import pyqtgraph as pg
 import dvg_monkeypatch_pyqtgraph  # pylint: disable=unused-import
 
@@ -27,7 +40,7 @@ from dvg_pyqtgraph_threadsafe import (
 )
 
 from dvg_devices.Arduino_protocol_serial import Arduino
-from humidistat_qdev import Humidistat_qdev
+from humidistat_qdev import Humidistat_qdev, ControlMode
 
 
 # Constants
@@ -132,7 +145,7 @@ def apply_PlotItem_style(
 # ------------------------------------------------------------------------------
 
 
-class MainWindow(QtWid.QWidget):
+class MainWindow(QWidget):
     def __init__(
         self,
         ard: Arduino,
@@ -159,27 +172,31 @@ class MainWindow(QtWid.QWidget):
             + controls.SS_HOVER
         )
 
+        # Textbox widths for fitting N characters using the current font
+        ex8 = 8 + 8 * QtGui.QFontMetrics(QtGui.QFont()).averageCharWidth()
+        ex10 = 8 + 10 * QtGui.QFontMetrics(QtGui.QFont()).averageCharWidth()
+
         # -------------------------
         #   Top frame
         # -------------------------
 
         # Left box
-        self.qlbl_update_counter = QtWid.QLabel("0")
-        self.qlbl_DAQ_rate = QtWid.QLabel("DAQ: nan Hz")
+        self.qlbl_update_counter = QLabel("0")
+        self.qlbl_DAQ_rate = QLabel("DAQ: nan Hz")
         self.qlbl_DAQ_rate.setStyleSheet("QLabel {min-width: 7em}")
 
-        vbox_left = QtWid.QVBoxLayout()
+        vbox_left = QVBoxLayout()
         vbox_left.addWidget(self.qlbl_update_counter, stretch=0)
         vbox_left.addStretch(1)
         vbox_left.addWidget(self.qlbl_DAQ_rate, stretch=0)
 
         # Middle box
-        self.qlbl_title = QtWid.QLabel(
+        self.qlbl_title = QLabel(
             "Humidistat",
             font=QtGui.QFont("Palatino", 14, weight=QtGui.QFont.Bold),
         )
         self.qlbl_title.setAlignment(QtCore.Qt.AlignCenter)
-        self.qlbl_cur_date_time = QtWid.QLabel("00-00-0000    00:00:00")
+        self.qlbl_cur_date_time = QLabel("00-00-0000    00:00:00")
         self.qlbl_cur_date_time.setAlignment(QtCore.Qt.AlignCenter)
         self.qpbt_record = controls.create_Toggle_button(
             "Click to start recording to file"
@@ -188,24 +205,24 @@ class MainWindow(QtWid.QWidget):
             lambda state: self.logger.record(state)
         )
 
-        vbox_middle = QtWid.QVBoxLayout()
+        vbox_middle = QVBoxLayout()
         vbox_middle.addWidget(self.qlbl_title)
         vbox_middle.addWidget(self.qlbl_cur_date_time)
         vbox_middle.addWidget(self.qpbt_record)
 
         # Right box
-        self.qpbt_exit = QtWid.QPushButton("Exit")
+        self.qpbt_exit = QPushButton("Exit")
         self.qpbt_exit.clicked.connect(self.close)
         self.qpbt_exit.setMinimumHeight(30)
-        self.qlbl_recording_time = QtWid.QLabel(alignment=QtCore.Qt.AlignRight)
+        self.qlbl_recording_time = QLabel(alignment=QtCore.Qt.AlignRight)
 
-        vbox_right = QtWid.QVBoxLayout()
+        vbox_right = QVBoxLayout()
         vbox_right.addWidget(self.qpbt_exit, stretch=0)
         vbox_right.addStretch(1)
         vbox_right.addWidget(self.qlbl_recording_time, stretch=0)
 
         # Round up top frame
-        hbox_top = QtWid.QHBoxLayout()
+        hbox_top = QHBoxLayout()
         hbox_top.addLayout(vbox_left, stretch=0)
         hbox_top.addStretch(1)
         hbox_top.addLayout(vbox_middle, stretch=0)
@@ -298,52 +315,52 @@ class MainWindow(QtWid.QWidget):
             "alignment": QtCore.Qt.AlignRight,
             "maximumWidth": 54,
         }
-        self.qlin_humi_1 = QtWid.QLineEdit(**p)
-        self.qlin_temp_1 = QtWid.QLineEdit(**p)
-        self.qlin_pres_1 = QtWid.QLineEdit(**p)
-        self.qlin_humi_2 = QtWid.QLineEdit(**p)
-        self.qlin_temp_2 = QtWid.QLineEdit(**p)
-        self.qlin_pres_2 = QtWid.QLineEdit(**p)
+        self.qlin_humi_1 = QLineEdit(**p)
+        self.qlin_temp_1 = QLineEdit(**p)
+        self.qlin_pres_1 = QLineEdit(**p)
+        self.qlin_humi_2 = QLineEdit(**p)
+        self.qlin_temp_2 = QLineEdit(**p)
+        self.qlin_pres_2 = QLineEdit(**p)
 
         # fmt: off
         legend_1.grid.setHorizontalSpacing(6)
-        legend_1.grid.addWidget(self.qlin_humi_1         , 0, 2)
-        legend_1.grid.addWidget(QtWid.QLabel("± 3 % RH") , 0, 3)
-        legend_1.grid.addWidget(self.qlin_temp_1         , 1, 2)
-        legend_1.grid.addWidget(QtWid.QLabel("± 0.5 °C") , 1, 3)
-        legend_1.grid.addWidget(self.qlin_pres_1         , 2, 2)
-        legend_1.grid.addWidget(QtWid.QLabel("± 1 mbar") , 2, 3)
+        legend_1.grid.addWidget(self.qlin_humi_1  , 0, 2)
+        legend_1.grid.addWidget(QLabel("± 3 % RH"), 0, 3)
+        legend_1.grid.addWidget(self.qlin_temp_1  , 1, 2)
+        legend_1.grid.addWidget(QLabel("± 0.5 °C"), 1, 3)
+        legend_1.grid.addWidget(self.qlin_pres_1  , 2, 2)
+        legend_1.grid.addWidget(QLabel("± 1 mbar"), 2, 3)
         legend_1.grid.setColumnStretch(0, 0)
         legend_1.grid.setColumnStretch(1, 0)
 
         legend_2.grid.setHorizontalSpacing(6)
-        legend_2.grid.addWidget(self.qlin_humi_2         , 0, 2)
-        legend_2.grid.addWidget(QtWid.QLabel("± 3 % RH") , 0, 3)
-        legend_2.grid.addWidget(self.qlin_temp_2         , 1, 2)
-        legend_2.grid.addWidget(QtWid.QLabel("± 0.5 °C") , 1, 3)
-        legend_2.grid.addWidget(self.qlin_pres_2         , 2, 2)
-        legend_2.grid.addWidget(QtWid.QLabel("± 1 mbar") , 2, 3)
+        legend_2.grid.addWidget(self.qlin_humi_2  , 0, 2)
+        legend_2.grid.addWidget(QLabel("± 3 % RH"), 0, 3)
+        legend_2.grid.addWidget(self.qlin_temp_2  , 1, 2)
+        legend_2.grid.addWidget(QLabel("± 0.5 °C"), 1, 3)
+        legend_2.grid.addWidget(self.qlin_pres_2  , 2, 2)
+        legend_2.grid.addWidget(QLabel("± 1 mbar"), 2, 3)
         legend_2.grid.setColumnStretch(0, 0)
         legend_2.grid.setColumnStretch(1, 0)
         # fmt: on
 
-        vbox = QtWid.QVBoxLayout()
-        vbox.addWidget(QtWid.QLabel("Sensor #1"))
+        vbox = QVBoxLayout()
+        vbox.addWidget(QLabel("<b>Sensor #1</b>"))
         vbox.addLayout(legend_1.grid)
-        vbox.addWidget(QtWid.QLabel("Sensor #2"))
+        vbox.addWidget(QLabel("<b>Sensor #2</b>"))
         vbox.addLayout(legend_2.grid)
 
-        qgrp_readings = QtWid.QGroupBox("Readings")
+        qgrp_readings = QGroupBox("Readings")
         qgrp_readings.setLayout(vbox)
 
         #  Group 'Log comments'
         # -------------------------
 
-        self.qtxt_comments = QtWid.QTextEdit()
-        grid = QtWid.QGridLayout()
+        self.qtxt_comments = QTextEdit()
+        grid = QGridLayout()
         grid.addWidget(self.qtxt_comments, 0, 0)
 
-        qgrp_comments = QtWid.QGroupBox("Log comments")
+        qgrp_comments = QGroupBox("Log comments")
         qgrp_comments.setLayout(grid)
 
         #  Group 'Charts'
@@ -396,15 +413,21 @@ class MainWindow(QtWid.QWidget):
         self.plot_manager.add_clear_button(linked_curves=self.curves)
         self.plot_manager.perform_preset(1)
 
-        qgrp_chart = QtWid.QGroupBox("Charts")
-        qgrp_chart.setLayout(self.plot_manager.grid)
+        qgrp_charts = QGroupBox("Charts")
+        qgrp_charts.setLayout(self.plot_manager.grid)
 
         #  Group 'Control'
         # -------------------------
 
-        self.qpbt_valve_1 = controls.create_Toggle_button("valve 1")
-        self.qpbt_valve_2 = controls.create_Toggle_button("valve 2")
-        self.qpbt_pump = controls.create_Toggle_button("pump")
+        p = {"maximumWidth": ex8, "alignment": QtCore.Qt.AlignRight}
+        self.qlin_setpoint = QLineEdit("50", **p)
+
+        self.qpbt_control_mode = controls.create_Toggle_button("Manual control")
+        self.qpbt_control_mode.clicked.connect(self.process_qpbt_control_mode)
+
+        self.qpbt_valve_1 = controls.create_Toggle_button()
+        self.qpbt_valve_2 = controls.create_Toggle_button()
+        self.qpbt_pump = controls.create_Toggle_button()
 
         self.qpbt_valve_1.clicked.connect(
             lambda: ard_qdev.turn_valve_1_off()
@@ -422,45 +445,144 @@ class MainWindow(QtWid.QWidget):
             else ard_qdev.turn_pump_on()
         )
 
-        self.qpbt_burst_1 = QtWid.QPushButton("burst valve 1")
-        self.qpbt_burst_2 = QtWid.QPushButton("burst valve 2")
-        self.qpbt_burst_1.clicked.connect(ard_qdev.burst_valve_1)
-        self.qpbt_burst_2.clicked.connect(ard_qdev.burst_valve_2)
+        self.qpbt_burst_incr = QPushButton("incr. RH burst")
+        self.qpbt_burst_decr = QPushButton("decr. RH burst")
+        self.qpbt_burst_incr.clicked.connect(ard_qdev.burst_valve_1)
+        self.qpbt_burst_decr.clicked.connect(ard_qdev.burst_valve_2)
 
-        grid = QtWid.QGridLayout()
-        grid.addWidget(self.qpbt_valve_1, 0, 0)
-        grid.addWidget(self.qpbt_valve_2, 1, 0)
-        grid.addWidget(self.qpbt_pump, 2, 0)
-        grid.addWidget(self.qpbt_burst_1, 3, 0)
-        grid.addWidget(self.qpbt_burst_2, 4, 0)
+        # Operating band: 'COARSE', 'FINE' or 'DEAD'
+        self.qlin_band = QLineEdit("COARSE", readOnly=True, maximumWidth=100)
 
-        qgrp_control = QtWid.QGroupBox("Control")
+        # fmt: off
+        i = 0
+        grid = QGridLayout(spacing=4)
+        grid.addWidget(QLabel("setpoint:")   , i, 0)
+        grid.addWidget(self.qlin_setpoint    , i, 1)
+        grid.addWidget(QLabel("% RH")        , i, 2)      ; i +=1
+        grid.addWidget(QLabel("band:")       , i, 0)
+        grid.addWidget(self.qlin_band        , i, 1, 1, 2); i +=1
+        grid.addItem(QSpacerItem(0, 6)       , i, 0)      ; i +=1
+        grid.addWidget(self.qpbt_control_mode, i, 0, 1, 3); i +=1
+        grid.addWidget(QLabel("valve 1")     , i, 0)
+        grid.addWidget(self.qpbt_valve_1     , i, 1, 1, 2); i +=1
+        grid.addWidget(QLabel("valve 2")     , i, 0)
+        grid.addWidget(self.qpbt_valve_2     , i, 1, 1, 2); i +=1
+        grid.addWidget(QLabel("pump")        , i, 0)
+        grid.addWidget(self.qpbt_pump        , i, 1, 1, 2); i +=1
+        grid.addItem(QSpacerItem(0, 6)       , i, 0)      ; i +=1
+        grid.addWidget(self.qpbt_burst_incr  , i, 0, 1, 3); i +=1
+        grid.addWidget(self.qpbt_burst_decr  , i, 0, 1, 3); i +=1
+        # fmt: on
+
+        qgrp_control = QGroupBox("Control")
         qgrp_control.setLayout(grid)
+
+        #  Group 'Config'
+        # -------------------------
+
+        # fmt: off
+        p = {"maximumWidth": ex10}
+        self.qchk_incr_RH_valve_1 = QCheckBox("valve 1", **p)
+        self.qchk_incr_RH_valve_2 = QCheckBox("valve 2", **p)
+        self.qchk_incr_RH_pump    = QCheckBox("pump"   , **p)
+        self.qchk_decr_RH_valve_1 = QCheckBox("valve 1", **p)
+        self.qchk_decr_RH_valve_2 = QCheckBox("valve 2", **p)
+        self.qchk_decr_RH_pump    = QCheckBox("pump"   , **p)
+        self.qrbt_act_on_sensor_1 = QRadioButton("sensor 1")
+        self.qrbt_act_on_sensor_2 = QRadioButton("sensor 2")
+        # fmt: on
+
+        p = {"maximumWidth": ex8, "alignment": QtCore.Qt.AlignRight}
+        self.qlin_fineband_delta_HI = QLineEdit("+2.0", **p)
+        self.qlin_fineband_delta_LO = QLineEdit("-2.0", **p)
+        self.qlin_deadband_delta_HI = QLineEdit("+0.5", **p)
+        self.qlin_deadband_delta_LO = QLineEdit("-0.5", **p)
+        self.qlin_burst_update_period = QLineEdit("10", **p)
+        self.qlin_incr_RH_burst_duration = QLineEdit("500", **p)
+        self.qlin_decr_RH_burst_duration = QLineEdit("1000", **p)
+
+        # fmt: off
+        i = 0
+        p = {"alignment": QtCore.Qt.AlignHCenter}
+        grid = QGridLayout(spacing=4)
+        grid.addWidget(QLabel("<b>Actuator setup</b>")  , i, 0, 1, 3); i+=1
+        grid.addWidget(QLabel("incr. RH:")              , i, 0)
+        grid.addWidget(self.qchk_incr_RH_valve_1        , i, 1)
+        grid.addWidget(QLabel("decr. RH:")              , i, 2)
+        grid.addWidget(self.qchk_decr_RH_valve_1        , i, 3)      ; i+=1
+        grid.addWidget(self.qchk_incr_RH_valve_2        , i, 1)
+        grid.addWidget(self.qchk_decr_RH_valve_2        , i, 3)      ; i+=1
+        grid.addWidget(self.qchk_incr_RH_pump           , i, 1)
+        grid.addWidget(self.qchk_decr_RH_pump           , i, 3)      ; i+=1
+        grid.addItem(QSpacerItem(0, 6)                  , i, 0)      ; i+=1
+        grid.addWidget(QLabel("act on:")                , i, 0)
+        grid.addWidget(self.qrbt_act_on_sensor_1        , i, 1, 1, 2); i+=1
+        grid.addWidget(self.qrbt_act_on_sensor_2        , i, 1, 1, 2); i+=1
+        grid.addItem(QSpacerItem(0, 6)                  , i, 0)      ; i+=1
+        grid.addWidget(QLabel("<b>Control bands</b>")   , i, 0, 1, 3); i+=1
+        grid.addWidget(QLabel("\u0394LO", **p)          , i, 1)
+        grid.addWidget(QLabel("\u0394HI", **p)          , i, 2)      ; i+=1
+        grid.addWidget(QLabel("fine:")                  , i, 0)
+        grid.addWidget(self.qlin_fineband_delta_LO      , i, 1)
+        grid.addWidget(self.qlin_fineband_delta_HI      , i, 2)
+        grid.addWidget(QLabel("% RH")                   , i, 3)      ; i+=1
+        grid.addWidget(QLabel("dead:")                  , i, 0)
+        grid.addWidget(self.qlin_deadband_delta_LO      , i, 1)
+        grid.addWidget(self.qlin_deadband_delta_HI      , i, 2)
+        grid.addWidget(QLabel("% RH")                   , i, 3)      ; i+=1
+        grid.addItem(QSpacerItem(0, 6)                  , i, 0)      ; i+=1
+        grid.addWidget(QLabel("<b>Fine-band bursts</b>"), i, 0, 1, 3); i+=1
+        grid.addWidget(QLabel("update period:")         , i, 0, 1, 2)
+        grid.addWidget(self.qlin_burst_update_period    , i, 2)
+        grid.addWidget(QLabel("s")                      , i, 3)      ; i+=1
+        grid.addWidget(QLabel("incr. RH duration:")     , i, 0, 1, 2)
+        grid.addWidget(self.qlin_incr_RH_burst_duration , i, 2)
+        grid.addWidget(QLabel("ms")                     , i, 3)      ; i+=1
+        grid.addWidget(QLabel("decr. RH duration:")     , i, 0, 1, 2)
+        grid.addWidget(self.qlin_decr_RH_burst_duration , i, 2)
+        grid.addWidget(QLabel("ms")                     , i, 3)      ; i+=1
+
+        # fmt: on
+
+        qgrp_config = QGroupBox("Config")
+        qgrp_config.setLayout(grid)
 
         #  Round up bottom frame
         # -------------------------
 
+        hbox1 = QHBoxLayout()
+        hbox1.addWidget(qgrp_readings, alignment=QtCore.Qt.AlignLeft)
+        hbox1.addWidget(qgrp_charts, alignment=QtCore.Qt.AlignLeft)
+
+        hbox2 = QHBoxLayout()
+        hbox2.addWidget(
+            qgrp_control, alignment=QtCore.Qt.AlignLeft | QtCore.Qt.AlignTop
+        )
+        hbox2.addWidget(
+            qgrp_config, alignment=(QtCore.Qt.AlignLeft | QtCore.Qt.AlignTop)
+        )
+
+        vbox = QVBoxLayout()
+        vbox.addWidget(qgrp_comments)
+        vbox.addLayout(hbox1)
+        vbox.addLayout(hbox2)
+
         # fmt: off
-        grid_bot = QtWid.QGridLayout()
-        grid_bot.addWidget(self.gw      , 0, 0, 3, 1)
-        grid_bot.addWidget(qgrp_comments, 0, 1, 1, 2)
-        grid_bot.addWidget(qgrp_readings, 1, 1)
-        grid_bot.addWidget(qgrp_chart   , 2, 1)
-        grid_bot.addWidget(qgrp_control , 1, 2)
+        grid_bot = QGridLayout()
+        grid_bot.addWidget(self.gw, 0, 0)
+        grid_bot.addLayout(vbox   , 0, 1)
         # fmt: on
         grid_bot.setColumnStretch(0, 1)
         grid_bot.setColumnStretch(1, 0)
-        grid_bot.setColumnStretch(2, 0)
-        grid_bot.setAlignment(qgrp_chart, QtCore.Qt.AlignLeft)
-        grid_bot.setAlignment(qgrp_control, QtCore.Qt.AlignTop)
+        # grid_bot.setAlignment(qgrp_control, QtCore.Qt.AlignLeft)
 
         # -------------------------
         #   Round up full window
         # -------------------------
 
-        vbox = QtWid.QVBoxLayout(self)
+        vbox = QVBoxLayout(self)
         vbox.addLayout(hbox_top, stretch=0)
-        vbox.addSpacerItem(QtWid.QSpacerItem(0, 10))
+        vbox.addSpacerItem(QSpacerItem(0, 10))
         vbox.addLayout(grid_bot, stretch=1)
 
         # -------------------------
@@ -523,11 +645,35 @@ class MainWindow(QtWid.QWidget):
         self.qlin_pres_2.setText("%.0f" % state.pres_2)
 
         self.qpbt_valve_1.setChecked(state.valve_1)
+        self.qpbt_valve_1.setText("ON" if state.valve_1 else "OFF")
         self.qpbt_valve_2.setChecked(state.valve_2)
+        self.qpbt_valve_2.setText("ON" if state.valve_2 else "OFF")
         self.qpbt_pump.setChecked(state.pump)
+        self.qpbt_pump.setText("ON" if state.pump else "OFF")
 
         if DEBUG:
             tprint("update_charts")
 
         for curve in self.curves:
             curve.update()
+
+    @QtCore.pyqtSlot()
+    def process_qpbt_control_mode(self):
+        if self.qpbt_control_mode.isChecked():
+            # Switch to auto control
+            self.qpbt_control_mode.setText("Auto control")
+            self.ard_qdev.state.control_mode = ControlMode.Auto_Coarse
+        else:
+            # Switch to manual control
+            self.qpbt_control_mode.setText("Manual control")
+            self.ard_qdev.state.control_mode = ControlMode.Manual
+            self.ard_qdev.turn_valve_1_off()
+            self.ard_qdev.turn_valve_2_off()
+            self.ard_qdev.turn_pump_off()
+
+        flag = self.ard_qdev.state.control_mode == ControlMode.Manual
+        self.qpbt_valve_1.setEnabled(flag)
+        self.qpbt_valve_2.setEnabled(flag)
+        self.qpbt_pump.setEnabled(flag)
+        self.qpbt_burst_incr.setEnabled(flag)
+        self.qpbt_burst_decr.setEnabled(flag)
