@@ -7,7 +7,7 @@ Manages the graphical user interface
 __author__ = "Dennis van Gils"
 __authoremail__ = "vangils.dennis@gmail.com"
 __url__ = "https://github.com/Dennis-van-Gils/project-Humidistat"
-__date__ = "22-01-2021"
+__date__ = "25-01-2021"
 __version__ = "1.0"
 # pylint: disable=bare-except, broad-except, unnecessary-lambda
 
@@ -445,30 +445,30 @@ class MainWindow(QWidget):
             lambda: ard_qdev.set_pump(not state.pump)
         )
 
-        self.qpbt_burst_incr = QPushButton("RH ▲ burst")
-        self.qpbt_burst_decr = QPushButton("RH ▼ burst")
-        self.qpbt_burst_incr.clicked.connect(ard_qdev.burst_valve_1)
-        self.qpbt_burst_decr.clicked.connect(ard_qdev.burst_valve_2)
+        self.qpbt_burst_incr_RH = QPushButton("RH ▲ burst")
+        self.qpbt_burst_decr_RH = QPushButton("RH ▼ burst")
+        self.qpbt_burst_incr_RH.clicked.connect(ard_qdev.burst_incr_RH)
+        self.qpbt_burst_decr_RH.clicked.connect(ard_qdev.burst_decr_RH)
 
         # fmt: off
         i = 0
         grid = QGridLayout(spacing=4)
-        grid.addWidget(QLabel("Setpoint:")   , i, 0)
-        grid.addWidget(self.qlin_setpoint    , i, 1)
-        grid.addWidget(QLabel("% RH")        , i, 2)      ; i +=1
-        grid.addWidget(QLabel("Band:")       , i, 0)
-        grid.addWidget(self.qlin_control_band, i, 1, 1, 2); i +=1
-        grid.addItem(QSpacerItem(0, 8)       , i, 0)      ; i +=1
-        grid.addWidget(self.qpbt_control_mode, i, 0, 1, 3); i +=1
-        grid.addWidget(QLabel("valve 1")     , i, 0)
-        grid.addWidget(self.qpbt_valve_1     , i, 1, 1, 2); i +=1
-        grid.addWidget(QLabel("valve 2")     , i, 0)
-        grid.addWidget(self.qpbt_valve_2     , i, 1, 1, 2); i +=1
-        grid.addWidget(QLabel("pump")        , i, 0)
-        grid.addWidget(self.qpbt_pump        , i, 1, 1, 2); i +=1
-        grid.addItem(QSpacerItem(0, 6)       , i, 0)      ; i +=1
-        grid.addWidget(self.qpbt_burst_incr  , i, 0, 1, 3); i +=1
-        grid.addWidget(self.qpbt_burst_decr  , i, 0, 1, 3); i +=1
+        grid.addWidget(QLabel("Setpoint:")    , i, 0)
+        grid.addWidget(self.qlin_setpoint     , i, 1)
+        grid.addWidget(QLabel("% RH")         , i, 2)      ; i +=1
+        grid.addWidget(QLabel("Band:")        , i, 0)
+        grid.addWidget(self.qlin_control_band , i, 1, 1, 2); i +=1
+        grid.addItem(QSpacerItem(0, 8)        , i, 0)      ; i +=1
+        grid.addWidget(self.qpbt_control_mode , i, 0, 1, 3); i +=1
+        grid.addWidget(QLabel("valve 1")      , i, 0)
+        grid.addWidget(self.qpbt_valve_1      , i, 1, 1, 2); i +=1
+        grid.addWidget(QLabel("valve 2")      , i, 0)
+        grid.addWidget(self.qpbt_valve_2      , i, 1, 1, 2); i +=1
+        grid.addWidget(QLabel("pump")         , i, 0)
+        grid.addWidget(self.qpbt_pump         , i, 1, 1, 2); i +=1
+        grid.addItem(QSpacerItem(0, 6)        , i, 0)      ; i +=1
+        grid.addWidget(self.qpbt_burst_incr_RH, i, 0, 1, 3); i +=1
+        grid.addWidget(self.qpbt_burst_decr_RH, i, 0, 1, 3); i +=1
         # fmt: on
 
         qgrp_control = QGroupBox("Control")
@@ -516,8 +516,8 @@ class MainWindow(QWidget):
         self.qlin_deadband_dHI = QLineEdit(**p)
         self.qlin_deadband_dLO = QLineEdit(**p)
         self.qlin_burst_update_period = QLineEdit(**p)
-        self.qlin_incr_RH_burst_length = QLineEdit(**p)
-        self.qlin_decr_RH_burst_length = QLineEdit(**p)
+        self.qlin_burst_incr_RH_length = QLineEdit(**p)
+        self.qlin_burst_decr_RH_length = QLineEdit(**p)
 
         self.qlin_fineband_dHI.editingFinished.connect(
             self.process_qlin_fineband_dHI
@@ -534,11 +534,11 @@ class MainWindow(QWidget):
         self.qlin_burst_update_period.editingFinished.connect(
             self.process_qlin_burst_update_period
         )
-        self.qlin_incr_RH_burst_length.editingFinished.connect(
-            self.process_qlin_incr_RH_burst_length
+        self.qlin_burst_incr_RH_length.editingFinished.connect(
+            self.process_qlin_burst_incr_RH_length
         )
-        self.qlin_decr_RH_burst_length.editingFinished.connect(
-            self.process_qlin_decr_RH_burst_length
+        self.qlin_burst_decr_RH_length.editingFinished.connect(
+            self.process_qlin_burst_decr_RH_length
         )
 
         # fmt: off
@@ -559,10 +559,10 @@ class MainWindow(QWidget):
         grid2.addWidget(self.qlin_burst_update_period      , i, 2)
         grid2.addWidget(QLabel("s")                        , i, 3)      ; i+=1
         grid2.addWidget(QLabel("RH ▲ burst length:")       , i, 0, 1, 2)
-        grid2.addWidget(self.qlin_incr_RH_burst_length     , i, 2)
+        grid2.addWidget(self.qlin_burst_incr_RH_length     , i, 2)
         grid2.addWidget(QLabel("ms")                       , i, 3)      ; i+=1
         grid2.addWidget(QLabel("RH ▼ burst length:")       , i, 0, 1, 2)
-        grid2.addWidget(self.qlin_decr_RH_burst_length     , i, 2)
+        grid2.addWidget(self.qlin_burst_decr_RH_length     , i, 2)
         grid2.addWidget(QLabel("ms")                       , i, 3)      ; i+=1
 
         i = 0
@@ -735,11 +735,11 @@ class MainWindow(QWidget):
         self.qlin_deadband_dHI.setText("%+.1f" % config.deadband_dHI)
         self.qlin_deadband_dLO.setText("%+.1f" % config.deadband_dLO)
         self.qlin_burst_update_period.setText("%u" % config.burst_update_period)
-        self.qlin_incr_RH_burst_length.setText(
-            "%u" % config.incr_RH_burst_length
+        self.qlin_burst_incr_RH_length.setText(
+            "%u" % config.burst_incr_RH_length
         )
-        self.qlin_decr_RH_burst_length.setText(
-            "%u" % config.decr_RH_burst_length
+        self.qlin_burst_decr_RH_length.setText(
+            "%u" % config.burst_decr_RH_length
         )
 
     # --------------------------------------------------------------------------
@@ -776,8 +776,8 @@ class MainWindow(QWidget):
         self.qpbt_valve_1.setEnabled(flag)
         self.qpbt_valve_2.setEnabled(flag)
         self.qpbt_pump.setEnabled(flag)
-        self.qpbt_burst_incr.setEnabled(flag)
-        self.qpbt_burst_decr.setEnabled(flag)
+        self.qpbt_burst_incr_RH.setEnabled(flag)
+        self.qpbt_burst_decr_RH.setEnabled(flag)
 
     @QtCore.pyqtSlot(bool)
     def process_qchk_incr_ENA_valve_1(self, checked: bool):
@@ -867,23 +867,23 @@ class MainWindow(QWidget):
         self.ard_qdev.config.burst_update_period = val
 
     @QtCore.pyqtSlot()
-    def process_qlin_incr_RH_burst_length(self):
+    def process_qlin_burst_incr_RH_length(self):
         try:
-            val = int(self.qlin_incr_RH_burst_length.text())
+            val = int(self.qlin_burst_incr_RH_length.text())
         except ValueError:
-            val = self.ard_qdev.config.incr_RH_burst_length
+            val = self.ard_qdev.config.burst_incr_RH_length
 
         val = max(val, 500)
-        self.qlin_incr_RH_burst_length.setText("%u" % val)
-        self.ard_qdev.config.incr_RH_burst_length = val
+        self.qlin_burst_incr_RH_length.setText("%u" % val)
+        self.ard_qdev.config.burst_incr_RH_length = val
 
     @QtCore.pyqtSlot()
-    def process_qlin_decr_RH_burst_length(self):
+    def process_qlin_burst_decr_RH_length(self):
         try:
-            val = int(self.qlin_decr_RH_burst_length.text())
+            val = int(self.qlin_burst_decr_RH_length.text())
         except ValueError:
-            val = self.ard_qdev.config.decr_RH_burst_length
+            val = self.ard_qdev.config.burst_decr_RH_length
 
         val = max(val, 500)
-        self.qlin_decr_RH_burst_length.setText("%u" % val)
-        self.ard_qdev.config.decr_RH_burst_length = val
+        self.qlin_burst_decr_RH_length.setText("%u" % val)
+        self.ard_qdev.config.burst_decr_RH_length = val

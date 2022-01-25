@@ -7,7 +7,7 @@ Manages multi-threaded communication with the Arduino
 __author__ = "Dennis van Gils"
 __authoremail__ = "vangils.dennis@gmail.com"
 __url__ = "https://github.com/Dennis-van-Gils/project-Humidistat"
-__date__ = "22-01-2021"
+__date__ = "25-01-2021"
 __version__ = "1.0"
 
 from enum import Enum
@@ -76,8 +76,8 @@ class Humidistat_qdev(QDeviceIO):
 
             # Fine 'burst' control mode
             self.burst_update_period = 10     # [s]
-            self.incr_RH_burst_length = 500   # [ms]
-            self.decr_RH_burst_length = 1000  # [ms]
+            self.burst_incr_RH_length = 500   # [ms]
+            self.burst_decr_RH_length = 1000  # [ms]
             # fmt: on
 
     # --------------------------------------------------------------------------
@@ -118,8 +118,20 @@ class Humidistat_qdev(QDeviceIO):
     def set_pump(self, flag: bool):
         self.send(self.dev.write, "p%u" % flag)
 
-    def burst_valve_1(self):
-        self.send(self.dev.write, "b1")
+    def burst_incr_RH(self):
+        command = "b%u%u%u%u" % (
+            self.config.actuators_incr.ENA_valve_1,
+            self.config.actuators_incr.ENA_valve_2,
+            self.config.actuators_incr.ENA_pump,
+            self.config.burst_incr_RH_length,
+        )
+        self.send(self.dev.write, command)
 
-    def burst_valve_2(self):
-        self.send(self.dev.write, "b2")
+    def burst_decr_RH(self):
+        command = "b%u%u%u%u" % (
+            self.config.actuators_decr.ENA_valve_1,
+            self.config.actuators_decr.ENA_valve_2,
+            self.config.actuators_decr.ENA_pump,
+            self.config.burst_decr_RH_length,
+        )
+        self.send(self.dev.write, command)

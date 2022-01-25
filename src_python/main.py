@@ -133,18 +133,20 @@ def DAQ_function():
     state.time = time.perf_counter()
 
     # Control mechanism
-    sp = state.setpoint
     humi = state.humi_1 if config.act_on_sensor_no == 1 else state.humi_2
-    if (humi > sp + config.deadband_dLO) & (humi < sp + config.deadband_dHI):
+    humi_err = humi - state.setpoint
+
+    if (humi_err > config.deadband_dLO) & (humi_err < config.deadband_dHI):
         state.control_band = ControlBand.Dead
-    elif (humi > sp + config.fineband_dLO) & (humi < sp + config.fineband_dHI):
+    elif (humi_err > config.fineband_dLO) & (humi_err < config.fineband_dHI):
         state.control_band = ControlBand.Fine
     else:
         state.control_band = ControlBand.Coarse
 
     if state.control_mode == ControlMode.Auto:
+
         if state.control_band == ControlBand.Coarse:
-            if humi < sp:
+            if humi < state.setpoint:
                 ard_qdev.set_valve_1(config.actuators_incr.ENA_valve_1)
                 ard_qdev.set_valve_2(config.actuators_incr.ENA_valve_2)
                 ard_qdev.set_pump(config.actuators_incr.ENA_pump)
@@ -152,11 +154,33 @@ def DAQ_function():
                 ard_qdev.set_valve_1(config.actuators_decr.ENA_valve_1)
                 ard_qdev.set_valve_2(config.actuators_decr.ENA_valve_2)
                 ard_qdev.set_pump(config.actuators_decr.ENA_pump)
+
+        elif state.control_band == ControlBand.Fine:
+            if state.control_band != state.control_band_prev:
+                # Restart burst timer as soon as we enter the fine-band
+                state.t_burst = time.perf_counter()
+
+                # And make sure we close all
+                ard_qdev.set_valve_1(False)
+                ard_qdev.set_valve_2(False)
+                ard_qdev.set_pump(False)
+
+            if time.perf_counter() - state.t_burst > config.burst_update_period:
+                # Timer fired
+                if humi < state.setpoint:
+                    ard_qdev.burst_incr_RH()
+                else:
+                    ard_qdev.burst_decr_RH()
+
+                state.t_burst = time.perf_counter()
+
         else:
-            # DEBUG: Set to False for the time being
+            # Deadband
             ard_qdev.set_valve_1(False)
             ard_qdev.set_valve_2(False)
             ard_qdev.set_pump(False)
+
+    state.control_band_prev = state.control_band
 
     # Add readings to chart histories
     window.curve_humi_1.appendData(state.time, state.humi_1)

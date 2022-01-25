@@ -242,11 +242,6 @@ void loop() {
       T_burst = parseIntInString(str_cmd, 4);
       t_burst = now;
       burst = true;
-      Serial.print(request.valve_1);
-      Serial.print(request.valve_2);
-      Serial.print(request.pump);
-      Serial.print(" ");
-      Serial.println(T_burst);
       update_actuators();
 
     } else if (strncmp(str_cmd, "v1", 2) == 0) {
