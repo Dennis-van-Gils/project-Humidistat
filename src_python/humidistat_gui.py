@@ -285,11 +285,16 @@ class MainWindow(QWidget):
             capacity=capacity,
             linked_curve=self.pi_pres.plot(pen=PEN_02, name="P_2"),
         )
+        # self.curve_setpoint = HistoryChartCurve(
+        #    capacity=capacity,
+        #    linked_curve=self.pi_humi.plot(pen=PEN_03, name="SP"),
+        # )
 
         self.curves_1 = [
             self.curve_humi_1,
             self.curve_temp_1,
             self.curve_pres_1,
+            # self.curve_setpoint,
         ]
         self.curves_2 = [
             self.curve_humi_2,

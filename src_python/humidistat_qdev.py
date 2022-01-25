@@ -59,6 +59,8 @@ class Humidistat_qdev(QDeviceIO):
             self.setpoint = 50  # [% RH]
             self.control_mode = ControlMode.Manual
             self.control_band = ControlBand.Coarse
+            self.control_band_prev = ControlBand.Coarse
+            self.t_burst = 0  # [s], timestamp at start of burst period
 
     class Config(object):
         def __init__(self):
@@ -110,13 +112,16 @@ class Humidistat_qdev(QDeviceIO):
     # --------------------------------------------------------------------------
 
     def set_valve_1(self, flag: bool):
-        self.send(self.dev.write, "v1%u" % flag)
+        if not self.state.valve_1 == flag:
+            self.send(self.dev.write, "v1%u" % flag)
 
     def set_valve_2(self, flag: bool):
-        self.send(self.dev.write, "v2%u" % flag)
+        if not self.state.valve_2 == flag:
+            self.send(self.dev.write, "v2%u" % flag)
 
     def set_pump(self, flag: bool):
-        self.send(self.dev.write, "p%u" % flag)
+        if not self.state.pump == flag:
+            self.send(self.dev.write, "p%u" % flag)
 
     def burst_incr_RH(self):
         command = "b%u%u%u%u" % (

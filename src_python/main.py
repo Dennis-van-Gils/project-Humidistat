@@ -26,12 +26,13 @@ from dvg_devices.Arduino_protocol_serial import Arduino
 from humidistat_qdev import Humidistat_qdev, ControlMode, ControlBand
 from humidistat_gui import MainWindow
 
-
 # Constants
-DAQ_INTERVAL_MS = 1000  # [ms]
+DAQ_INTERVAL_MS = 1000  # [ms] BME280 sensor spec sheet says >= 1000 ms
+DEBUG = True  # Show debug info in terminal?
 
-# Show debug info in terminal? Warning: Slow! Do not leave on unintentionally.
-DEBUG = False
+# ------------------------------------------------------------------------------
+#   current_date_time_strings
+# ------------------------------------------------------------------------------
 
 
 def current_date_time_strings():
@@ -189,6 +190,7 @@ def DAQ_function():
     window.curve_humi_2.appendData(state.time, state.humi_2)
     window.curve_temp_2.appendData(state.time, state.temp_2)
     window.curve_pres_2.appendData(state.time, state.pres_2)
+    # window.curve_setpoint.appendData(state.time, state.setpoint)
 
     # Logging to file
     logger.update(mode="w")
