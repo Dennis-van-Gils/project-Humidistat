@@ -20,7 +20,7 @@
 
   https://github.com/Dennis-van-Gils/project-Humidistat
   Dennis van Gils
-  22-01-2022
+  25-01-2022
 *******************************************************************************/
 
 #include <Arduino.h>
@@ -165,9 +165,17 @@ void perform_measurement_and_report(uint32_t now, uint32_t t_0) {
 
 bool parseBoolInString(char *strIn, uint8_t iPos) {
   if (strlen(strIn) > iPos) {
-    return (bool)atoi(&strIn[iPos]);
+    return (strncmp(&strIn[iPos], "1", 1) == 0);
   } else {
     return false;
+  }
+}
+
+int parseIntInString(char *strIn, uint8_t iPos) {
+  if (strlen(strIn) > iPos) {
+    return atoi(&strIn[iPos]);
+  } else {
+    return 0;
   }
 }
 
@@ -211,12 +219,9 @@ void loop() {
   static uint32_t tick = now;
 
   // Short burst control
-  const uint32_t T_burst_1 = 500;  // [ms]
-  const uint32_t T_burst_2 = 1000; // [ms]
-  static bool burst_valve_1 = false;
-  static bool burst_valve_2 = false;
-  static uint32_t t_burst_valve_1 = 0;
-  static uint32_t t_burst_valve_2 = 0;
+  static bool burst = false;   // Burst in progress?
+  static uint32_t T_burst = 0; // [ms] Length of burst
+  static uint32_t t_burst = 0; // `millis()` start of burst
 
   // Process incoming serial commands
   if (sc.available()) {
@@ -225,20 +230,23 @@ void loop() {
     if (strcmp(str_cmd, "id?") == 0) {
       Serial.println("Arduino, Humidistat v1");
 
-    } else if (strcmp(str_cmd, "b1") == 0) {
-      // Turn valve 1 & pump on for a short fixed duration, aka 'burst'
-      burst_valve_1 = true;
-      t_burst_valve_1 = now;
-      request.valve_1 = true;
-      request.pump = true;
-      update_actuators();
-
-    } else if (strcmp(str_cmd, "b2") == 0) {
-      // Turn valve 2 & pump on for a short fixed duration, aka 'burst'
-      burst_valve_2 = true;
-      t_burst_valve_2 = now;
-      request.valve_2 = true;
-      request.pump = true;
+    } else if (strncmp(str_cmd, "b", 1) == 0) {
+      // `Burst` mode: Open valve 1 and/or valve 2 and/or the pump for a short
+      // fixed time duration. Closes all again after the elapsed time.
+      // Command parameters:
+      //  "b"[0/1: valve_1?][0/1: valve_2?][0/1: pump?][int: duration in ms]
+      //   E.g: "b101500" to open valve_1 and the pump for 500 ms
+      request.valve_1 = parseBoolInString(str_cmd, 1);
+      request.valve_2 = parseBoolInString(str_cmd, 2);
+      request.pump = parseBoolInString(str_cmd, 3);
+      T_burst = parseIntInString(str_cmd, 4);
+      t_burst = now;
+      burst = true;
+      Serial.print(request.valve_1);
+      Serial.print(request.valve_2);
+      Serial.print(request.pump);
+      Serial.print(" ");
+      Serial.println(T_burst);
       update_actuators();
 
     } else if (strncmp(str_cmd, "v1", 2) == 0) {
@@ -254,6 +262,13 @@ void loop() {
     } else if (strncmp(str_cmd, "p", 1) == 0) {
       // Turn pump on/off
       request.pump = parseBoolInString(str_cmd, 1);
+      update_actuators();
+
+    } else if (strncmp(str_cmd, "q", 1) == 0) {
+      // Close all
+      request.valve_1 = false;
+      request.valve_2 = false;
+      request.pump = false;
       update_actuators();
 
     } else if (strcmp(str_cmd, "r") == 0) {
@@ -272,15 +287,9 @@ void loop() {
   }
 
   // Burst control
-  if (burst_valve_1 && (now - t_burst_valve_1 > T_burst_1)) {
-    burst_valve_1 = false;
+  if (burst && (now - t_burst > T_burst)) {
+    burst = false;
     request.valve_1 = false;
-    request.pump = false;
-    update_actuators();
-  }
-
-  if (burst_valve_2 && (now - t_burst_valve_2 > T_burst_2)) {
-    burst_valve_2 = false;
     request.valve_2 = false;
     request.pump = false;
     update_actuators();
