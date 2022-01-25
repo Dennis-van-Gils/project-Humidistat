@@ -66,7 +66,7 @@ class Humidistat_qdev(QDeviceIO):
             # Actuators
             self.actuators_incr = ActuatorManager(True, False, True)
             self.actuators_decr = ActuatorManager(False, True, True)
-            self.act_on_sensor_no = 1  # [1 or 2]
+            self.act_on_sensor_no = 2  # [1 or 2]
 
             # Bandwidths
             self.fineband_dHI = +2     # [% RH]
@@ -117,24 +117,6 @@ class Humidistat_qdev(QDeviceIO):
 
     def set_pump(self, flag: bool):
         self.send(self.dev.write, "p%u" % flag)
-
-    def turn_valve_1_off(self):
-        self.send(self.dev.write, "v10")
-
-    def turn_valve_1_on(self):
-        self.send(self.dev.write, "v11")
-
-    def turn_valve_2_off(self):
-        self.send(self.dev.write, "v20")
-
-    def turn_valve_2_on(self):
-        self.send(self.dev.write, "v21")
-
-    def turn_pump_off(self):
-        self.send(self.dev.write, "p0")
-
-    def turn_pump_on(self):
-        self.send(self.dev.write, "p1")
 
     def burst_valve_1(self):
         self.send(self.dev.write, "b1")

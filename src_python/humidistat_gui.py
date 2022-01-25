@@ -436,19 +436,13 @@ class MainWindow(QWidget):
         self.qpbt_pump = controls.create_Toggle_button(maximumWidth=80)
 
         self.qpbt_valve_1.clicked.connect(
-            lambda: ard_qdev.turn_valve_1_off()
-            if state.valve_1
-            else ard_qdev.turn_valve_1_on()
+            lambda: ard_qdev.set_valve_1(not state.valve_1)
         )
         self.qpbt_valve_2.clicked.connect(
-            lambda: ard_qdev.turn_valve_2_off()
-            if state.valve_2
-            else ard_qdev.turn_valve_2_on()
+            lambda: ard_qdev.set_valve_2(not state.valve_2)
         )
         self.qpbt_pump.clicked.connect(
-            lambda: ard_qdev.turn_pump_off()
-            if state.pump
-            else ard_qdev.turn_pump_on()
+            lambda: ard_qdev.set_pump(not state.pump)
         )
 
         self.qpbt_burst_incr = QPushButton("RH ▲ burst")
@@ -495,7 +489,26 @@ class MainWindow(QWidget):
         self.qrbt_act_on_sensor_2  = QRadioButton("sensor 2")
         # fmt: on
 
-        # TODO: Add processing of above controls
+        self.qchk_incr_ENA_valve_1.clicked.connect(
+            self.process_qchk_incr_ENA_valve_1
+        )
+        self.qchk_decr_ENA_valve_1.clicked.connect(
+            self.process_qchk_decr_ENA_valve_1
+        )
+        self.qchk_incr_ENA_valve_2.clicked.connect(
+            self.process_qchk_incr_ENA_valve_2
+        )
+        self.qchk_decr_ENA_valve_2.clicked.connect(
+            self.process_qchk_decr_ENA_valve_2
+        )
+        self.qchk_incr_ENA_pump.clicked.connect(self.process_qchk_incr_ENA_pump)
+        self.qchk_decr_ENA_pump.clicked.connect(self.process_qchk_decr_ENA_pump)
+        self.qrbt_act_on_sensor_1.clicked.connect(
+            self.process_qrbt_act_on_sensor_1
+        )
+        self.qrbt_act_on_sensor_2.clicked.connect(
+            self.process_qrbt_act_on_sensor_2
+        )
 
         p = {"maximumWidth": ex8, "alignment": QtCore.Qt.AlignRight}
         self.qlin_fineband_dHI = QLineEdit(**p)
@@ -755,9 +768,9 @@ class MainWindow(QWidget):
             # Switch to manual control
             self.qpbt_control_mode.setText("Manual control")
             self.ard_qdev.state.control_mode = ControlMode.Manual
-            self.ard_qdev.turn_valve_1_off()
-            self.ard_qdev.turn_valve_2_off()
-            self.ard_qdev.turn_pump_off()
+            self.ard_qdev.set_valve_1(False)
+            self.ard_qdev.set_valve_2(False)
+            self.ard_qdev.set_pump(False)
 
         flag = self.ard_qdev.state.control_mode == ControlMode.Manual
         self.qpbt_valve_1.setEnabled(flag)
@@ -765,6 +778,49 @@ class MainWindow(QWidget):
         self.qpbt_pump.setEnabled(flag)
         self.qpbt_burst_incr.setEnabled(flag)
         self.qpbt_burst_decr.setEnabled(flag)
+
+    @QtCore.pyqtSlot(bool)
+    def process_qchk_incr_ENA_valve_1(self, checked: bool):
+        self.ard_qdev.config.actuators_incr.ENA_valve_1 = checked
+
+    @QtCore.pyqtSlot(bool)
+    def process_qchk_incr_ENA_valve_2(self, checked: bool):
+        self.ard_qdev.config.actuators_incr.ENA_valve_2 = checked
+
+    @QtCore.pyqtSlot(bool)
+    def process_qchk_incr_ENA_pump(self, checked: bool):
+        self.ard_qdev.config.actuators_incr.ENA_pump = checked
+
+    @QtCore.pyqtSlot(bool)
+    def process_qchk_decr_ENA_valve_1(self, checked: bool):
+        self.ard_qdev.config.actuators_decr.ENA_valve_1 = checked
+
+    @QtCore.pyqtSlot(bool)
+    def process_qchk_decr_ENA_valve_2(self, checked: bool):
+        self.ard_qdev.config.actuators_decr.ENA_valve_2 = checked
+
+    @QtCore.pyqtSlot(bool)
+    def process_qchk_decr_ENA_pump(self, checked: bool):
+        self.ard_qdev.config.actuators_decr.ENA_pump = checked
+
+    @QtCore.pyqtSlot(bool)
+    def process_qrbt_act_on_sensor_1(self, checked: bool):
+        self.ard_qdev.config.act_on_sensor_no = 1 if checked else 2
+
+    @QtCore.pyqtSlot(bool)
+    def process_qrbt_act_on_sensor_2(self, checked: bool):
+        self.ard_qdev.config.act_on_sensor_no = 2 if checked else 1
+
+    @QtCore.pyqtSlot()
+    def process_qlin_fineband_dLO(self):
+        try:
+            val = float(self.qlin_fineband_dLO.text())
+        except ValueError:
+            val = self.ard_qdev.config.fineband_dLO
+
+        val = -(abs(val))
+        self.qlin_fineband_dLO.setText("%+.1f" % val)
+        self.ard_qdev.config.fineband_dLO = val
 
     @QtCore.pyqtSlot()
     def process_qlin_fineband_dHI(self):
@@ -778,15 +834,15 @@ class MainWindow(QWidget):
         self.ard_qdev.config.fineband_dHI = val
 
     @QtCore.pyqtSlot()
-    def process_qlin_fineband_dLO(self):
+    def process_qlin_deadband_dLO(self):
         try:
-            val = float(self.qlin_fineband_dLO.text())
+            val = float(self.qlin_deadband_dLO.text())
         except ValueError:
-            val = self.ard_qdev.config.fineband_dLO
+            val = self.ard_qdev.config.deadband_dLO
 
-        val = -val if val > 0 else val
-        self.qlin_fineband_dLO.setText("%+.1f" % val)
-        self.ard_qdev.config.fineband_dLO = val
+        val = -(abs(val))
+        self.qlin_deadband_dLO.setText("%+.1f" % val)
+        self.ard_qdev.config.deadband_dLO = val
 
     @QtCore.pyqtSlot()
     def process_qlin_deadband_dHI(self):
@@ -798,17 +854,6 @@ class MainWindow(QWidget):
         val = max(val, 0)
         self.qlin_deadband_dHI.setText("%+.1f" % val)
         self.ard_qdev.config.deadband_dHI = val
-
-    @QtCore.pyqtSlot()
-    def process_qlin_deadband_dLO(self):
-        try:
-            val = float(self.qlin_deadband_dLO.text())
-        except ValueError:
-            val = self.ard_qdev.config.deadband_dLO
-
-        val = -val if val > 0 else val
-        self.qlin_deadband_dLO.setText("%+.1f" % val)
-        self.ard_qdev.config.deadband_dLO = val
 
     @QtCore.pyqtSlot()
     def process_qlin_burst_update_period(self):
