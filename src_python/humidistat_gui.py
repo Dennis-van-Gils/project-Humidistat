@@ -11,10 +11,14 @@ __date__ = "28-01-2021"
 __version__ = "1.0"
 # pylint: disable=bare-except, broad-except, unnecessary-lambda
 
+from pathlib import Path
+from configparser import ConfigParser
+
 from PyQt5 import QtCore, QtGui
 from PyQt5.QtCore import QDateTime
 from PyQt5.QtWidgets import (
     QCheckBox,
+    QFileDialog,
     QGridLayout,
     QGroupBox,
     QHBoxLayout,
@@ -31,7 +35,7 @@ import pyqtgraph as pg
 import dvg_monkeypatch_pyqtgraph  # pylint: disable=unused-import
 
 import dvg_pyqt_controls as controls
-from dvg_debug_functions import tprint
+from dvg_debug_functions import tprint, print_fancy_traceback as pft
 from dvg_pyqt_filelogger import FileLogger
 from dvg_pyqtgraph_threadsafe import (
     HistoryChartCurve,
@@ -46,6 +50,7 @@ from humidistat_qdev import Humidistat_qdev, ControlMode, ControlBand
 # Constants
 UPDATE_INTERVAL_WALL_CLOCK = 50  # 50 [ms]
 CHART_HISTORY_TIME = 7200  # Maximum history length of charts [s]
+DEFAULT_CONFIG_FILE = "./config/humidistat_default_config.ini"
 
 # Show debug info in terminal? Warning: Slow! Do not leave on unintentionally.
 DEBUG = False
@@ -426,22 +431,19 @@ class MainWindow(QWidget):
 
         p = {"maximumWidth": ex10 / 2, "alignment": QtCore.Qt.AlignRight}
         self.qlin_setpoint = QLineEdit(**p)
-        self.qlin_setpoint.editingFinished.connect(self.process_qlin_setpoint)
         self.qlin_control_band = QLineEdit(
             readOnly=True, maximumWidth=80, alignment=QtCore.Qt.AlignHCenter
         )
-
-        legend_setpoint = LegendSelect(
-            linked_curves=[self.curve_setpoint], hide_toggle_button=True
-        )
-
         self.qpbt_control_mode = controls.create_Toggle_button("Manual control")
-        self.qpbt_control_mode.clicked.connect(self.process_qpbt_control_mode)
-
         self.qpbt_valve_1 = controls.create_Toggle_button(maximumWidth=80)
         self.qpbt_valve_2 = controls.create_Toggle_button(maximumWidth=80)
         self.qpbt_pump = controls.create_Toggle_button(maximumWidth=80)
+        self.qpbt_burst_incr_RH = QPushButton("RH ▲ burst")
+        self.qpbt_burst_decr_RH = QPushButton("RH ▼ burst")
+        self.qpbt_reconnect = QPushButton("Reconnect sensors")
 
+        self.qlin_setpoint.editingFinished.connect(self.process_qlin_setpoint)
+        self.qpbt_control_mode.clicked.connect(self.process_qpbt_control_mode)
         self.qpbt_valve_1.clicked.connect(
             lambda: ard_qdev.set_valve_1(not state.valve_1)
         )
@@ -451,32 +453,38 @@ class MainWindow(QWidget):
         self.qpbt_pump.clicked.connect(
             lambda: ard_qdev.set_pump(not state.pump)
         )
-
-        self.qpbt_burst_incr_RH = QPushButton("RH ▲ burst")
-        self.qpbt_burst_decr_RH = QPushButton("RH ▼ burst")
         self.qpbt_burst_incr_RH.clicked.connect(ard_qdev.burst_incr_RH)
         self.qpbt_burst_decr_RH.clicked.connect(ard_qdev.burst_decr_RH)
+        self.qpbt_reconnect.clicked.connect(ard_qdev.reconnect_BME280_sensors)
+
+        legend_setpoint = LegendSelect(
+            linked_curves=[self.curve_setpoint], hide_toggle_button=True
+        )
 
         # fmt: off
         i = 0
         grid = QGridLayout(spacing=4)
-        grid.addWidget(QLabel("Setpoint:")    , i, 0)
-        grid.addWidget(self.qlin_setpoint     , i, 1)
-        grid.addWidget(QLabel("% RH")         , i, 2)      ; i +=1
-        grid.addLayout(legend_setpoint.grid   , i, 1, 1, 2); i +=1
-        grid.addWidget(QLabel("Band:")        , i, 0)
-        grid.addWidget(self.qlin_control_band , i, 1, 1, 2); i +=1
-        grid.addItem(QSpacerItem(0, 8)        , i, 0)      ; i +=1
-        grid.addWidget(self.qpbt_control_mode , i, 0, 1, 3); i +=1
-        grid.addWidget(QLabel("valve 1")      , i, 0)
-        grid.addWidget(self.qpbt_valve_1      , i, 1, 1, 2); i +=1
-        grid.addWidget(QLabel("valve 2")      , i, 0)
-        grid.addWidget(self.qpbt_valve_2      , i, 1, 1, 2); i +=1
-        grid.addWidget(QLabel("pump")         , i, 0)
-        grid.addWidget(self.qpbt_pump         , i, 1, 1, 2); i +=1
-        grid.addItem(QSpacerItem(0, 6)        , i, 0)      ; i +=1
-        grid.addWidget(self.qpbt_burst_incr_RH, i, 0, 1, 3); i +=1
-        grid.addWidget(self.qpbt_burst_decr_RH, i, 0, 1, 3); i +=1
+        grid.addWidget(QLabel("Setpoint:")       , i, 0)
+        grid.addWidget(self.qlin_setpoint        , i, 1)
+        grid.addWidget(QLabel("% RH")            , i, 2)         ; i+=1
+        grid.addLayout(legend_setpoint.grid      , i, 1, 1, 2)   ; i+=1
+        grid.addWidget(QLabel("Band:")           , i, 0)
+        grid.addWidget(self.qlin_control_band    , i, 1, 1, 2)   ; i+=1
+        grid.addItem(QSpacerItem(0, 10)          , i, 0)         ; i+=1
+        grid.addWidget(QLabel("<b>Actuators</b>"), i, 0, 1, 3)   ; i+=1
+        grid.addWidget(self.qpbt_control_mode    , i, 0, 1, 3)   ; i+=1
+        grid.addWidget(QLabel("valve 1")         , i, 0)
+        grid.addWidget(self.qpbt_valve_1         , i, 1, 1, 2)   ; i+=1
+        grid.addWidget(QLabel("valve 2")         , i, 0)
+        grid.addWidget(self.qpbt_valve_2         , i, 1, 1, 2)   ; i+=1
+        grid.addWidget(QLabel("pump")            , i, 0)
+        grid.addWidget(self.qpbt_pump            , i, 1, 1, 2)   ; i+=1
+        grid.addItem(QSpacerItem(0, 6)           , i, 0)         ; i+=1
+        grid.addWidget(self.qpbt_burst_incr_RH   , i, 0, 1, 3)   ; i+=1
+        grid.addWidget(self.qpbt_burst_decr_RH   , i, 0, 1, 3)   ; i+=1
+        grid.addItem(QSpacerItem(0, 6)           , i, 0)         ; i+=1
+        grid.addWidget(QLabel("<b>Troubleshoot</b>"), i, 0, 1, 3); i+=1
+        grid.addWidget(self.qpbt_reconnect       , i, 0, 1, 3)   ; i+=1
         # fmt: on
 
         qgrp_control = QGroupBox("Control")
@@ -549,6 +557,27 @@ class MainWindow(QWidget):
             self.process_qlin_burst_decr_RH_length
         )
 
+        self.qpbt_load_config = QPushButton("Load", maximumWidth=ex8)
+        self.qpbt_save_config = QPushButton("Save", maximumWidth=ex8)
+        self.qpbt_dflt_config = QPushButton(
+            "Save as default", maximumWidth=ex8 * 2
+        )
+        self.qpbt_load_config.clicked.connect(
+            lambda: self.load_config_from_file(from_default=False)
+        )
+        self.qpbt_save_config.clicked.connect(
+            lambda: self.save_config_to_file(as_default=False)
+        )
+        self.qpbt_dflt_config.clicked.connect(
+            lambda: self.save_config_to_file(as_default=True)
+        )
+
+        grid3 = QGridLayout(spacing=4)
+        grid3.addWidget(QLabel("<b>Configuration</b>"), 0, 0, 1, 3)
+        grid3.addWidget(self.qpbt_load_config, 1, 0)
+        grid3.addWidget(self.qpbt_save_config, 1, 1)
+        grid3.addWidget(self.qpbt_dflt_config, 1, 2)
+
         # fmt: off
         i = 0
         grid2 = QGridLayout(spacing=4)
@@ -588,8 +617,10 @@ class MainWindow(QWidget):
         grid.addWidget(QLabel("Act on:")                , i, 0)
         grid.addWidget(self.qrbt_act_on_sensor_1        , i, 1, 1, 2); i+=1
         grid.addWidget(self.qrbt_act_on_sensor_2        , i, 1, 1, 2); i+=1
-        grid.addItem(QSpacerItem(0, 6)                  , i, 0)      ; i+=1
-        grid.addLayout(grid2                            , i, 0, 1, 4)
+        grid.addItem(QSpacerItem(0, 4)                  , i, 0)      ; i+=1
+        grid.addLayout(grid2                            , i, 0, 1, 4); i+=1
+        grid.addItem(QSpacerItem(0, 4)                  , i, 0)      ; i+=1
+        grid.addLayout(grid3                            , i, 0, 1, 4)
         # fmt: on
 
         qgrp_config = QGroupBox("Configuration")
@@ -600,18 +631,18 @@ class MainWindow(QWidget):
 
         hbox1 = QHBoxLayout()
         hbox1.addWidget(
-            qgrp_readings, alignment=QtCore.Qt.AlignLeft | QtCore.Qt.AlignTop
+            qgrp_readings, alignment=QtCore.Qt.AlignLeft  # | QtCore.Qt.AlignTop
         )
         hbox1.addWidget(
-            qgrp_control, alignment=QtCore.Qt.AlignLeft  # | QtCore.Qt.AlignTop
+            qgrp_charts, alignment=QtCore.Qt.AlignLeft  # | QtCore.Qt.AlignTop
         )
 
         hbox2 = QHBoxLayout()
         hbox2.addWidget(
-            qgrp_charts, alignment=QtCore.Qt.AlignLeft | QtCore.Qt.AlignTop
+            qgrp_control, alignment=QtCore.Qt.AlignLeft  # | QtCore.Qt.AlignTop
         )
         hbox2.addWidget(
-            qgrp_config, alignment=(QtCore.Qt.AlignLeft | QtCore.Qt.AlignTop)
+            qgrp_config, alignment=QtCore.Qt.AlignLeft  # | QtCore.Qt.AlignTop
         )
 
         vbox = QVBoxLayout()
@@ -726,13 +757,13 @@ class MainWindow(QWidget):
 
         self.qlin_setpoint.setText("%u" % state.setpoint)
 
-        self.qchk_incr_ENA_valve_1.setChecked(config.actuators_incr.ENA_valve_1)
-        self.qchk_incr_ENA_valve_2.setChecked(config.actuators_incr.ENA_valve_2)
-        self.qchk_incr_ENA_pump.setChecked(config.actuators_incr.ENA_pump)
+        self.qchk_incr_ENA_valve_1.setChecked(config.actors_incr_RH.ENA_valve_1)
+        self.qchk_incr_ENA_valve_2.setChecked(config.actors_incr_RH.ENA_valve_2)
+        self.qchk_incr_ENA_pump.setChecked(config.actors_incr_RH.ENA_pump)
 
-        self.qchk_decr_ENA_valve_1.setChecked(config.actuators_decr.ENA_valve_1)
-        self.qchk_decr_ENA_valve_2.setChecked(config.actuators_decr.ENA_valve_2)
-        self.qchk_decr_ENA_pump.setChecked(config.actuators_decr.ENA_pump)
+        self.qchk_decr_ENA_valve_1.setChecked(config.actors_decr_RH.ENA_valve_1)
+        self.qchk_decr_ENA_valve_2.setChecked(config.actors_decr_RH.ENA_valve_2)
+        self.qchk_decr_ENA_pump.setChecked(config.actors_decr_RH.ENA_pump)
 
         self.qrbt_act_on_sensor_1.setChecked(config.act_on_sensor_no == 1)
         self.qrbt_act_on_sensor_2.setChecked(config.act_on_sensor_no == 2)
@@ -788,27 +819,27 @@ class MainWindow(QWidget):
 
     @QtCore.pyqtSlot(bool)
     def process_qchk_incr_ENA_valve_1(self, checked: bool):
-        self.ard_qdev.config.actuators_incr.ENA_valve_1 = checked
+        self.ard_qdev.config.actors_incr_RH.ENA_valve_1 = checked
 
     @QtCore.pyqtSlot(bool)
     def process_qchk_incr_ENA_valve_2(self, checked: bool):
-        self.ard_qdev.config.actuators_incr.ENA_valve_2 = checked
+        self.ard_qdev.config.actors_incr_RH.ENA_valve_2 = checked
 
     @QtCore.pyqtSlot(bool)
     def process_qchk_incr_ENA_pump(self, checked: bool):
-        self.ard_qdev.config.actuators_incr.ENA_pump = checked
+        self.ard_qdev.config.actors_incr_RH.ENA_pump = checked
 
     @QtCore.pyqtSlot(bool)
     def process_qchk_decr_ENA_valve_1(self, checked: bool):
-        self.ard_qdev.config.actuators_decr.ENA_valve_1 = checked
+        self.ard_qdev.config.actors_decr_RH.ENA_valve_1 = checked
 
     @QtCore.pyqtSlot(bool)
     def process_qchk_decr_ENA_valve_2(self, checked: bool):
-        self.ard_qdev.config.actuators_decr.ENA_valve_2 = checked
+        self.ard_qdev.config.actors_decr_RH.ENA_valve_2 = checked
 
     @QtCore.pyqtSlot(bool)
     def process_qchk_decr_ENA_pump(self, checked: bool):
-        self.ard_qdev.config.actuators_decr.ENA_pump = checked
+        self.ard_qdev.config.actors_decr_RH.ENA_pump = checked
 
     @QtCore.pyqtSlot(bool)
     def process_qrbt_act_on_sensor_1(self, checked: bool):
@@ -894,3 +925,127 @@ class MainWindow(QWidget):
         val = max(val, 500)
         self.qlin_burst_decr_RH_length.setText("%u" % val)
         self.ard_qdev.config.burst_decr_RH_length = val
+
+    # --------------------------------------------------------------------------
+    #   Configuration files
+    # --------------------------------------------------------------------------
+
+    def save_config_to_file(self, as_default: bool = True):
+        config = self.ard_qdev.config  # Shorthand
+
+        cp = ConfigParser()
+        cp.optionxform = lambda option: option  # Preserve letter case
+
+        descr = "Humidistat"
+        cp.add_section(descr)
+        tmp = config.actors_incr_RH
+        cp.set(descr, "actors_incr_RH_ENA_valve_1", str(tmp.ENA_valve_1))
+        cp.set(descr, "actors_incr_RH_ENA_valve_2", str(tmp.ENA_valve_2))
+        cp.set(descr, "actors_incr_RH_ENA_pump", str(tmp.ENA_pump))
+        tmp = config.actors_decr_RH
+        cp.set(descr, "actors_decr_RH_ENA_valve_1", str(tmp.ENA_valve_1))
+        cp.set(descr, "actors_decr_RH_ENA_valve_2", str(tmp.ENA_valve_2))
+        cp.set(descr, "actors_decr_RH_ENA_pump", str(tmp.ENA_pump))
+        cp.set(descr, "act_on_sensor_no", str(config.act_on_sensor_no))
+        cp.set(descr, "fineband_dHI", str(config.fineband_dHI))
+        cp.set(descr, "fineband_dLO", str(config.fineband_dLO))
+        cp.set(descr, "deadband_dHI", str(config.deadband_dHI))
+        cp.set(descr, "deadband_dLO", str(config.deadband_dLO))
+        cp.set(descr, "burst_update_period", str(config.burst_update_period))
+        cp.set(descr, "burst_incr_RH_length", str(config.burst_incr_RH_length))
+        cp.set(descr, "burst_decr_RH_length", str(config.burst_decr_RH_length))
+
+        if as_default:
+            fn = DEFAULT_CONFIG_FILE
+        else:  # Ask user for filename
+            suggested_name = (
+                "humidistat_config_%s.ini"
+                % QDateTime.currentDateTime().toString("yyMMdd_HHmmss")
+            )
+            options = QFileDialog.Options()
+            # options |= QFileDialog.DontUseNativeDialog
+            fn, _ = QFileDialog.getSaveFileName(
+                self,
+                caption="Save Humidistat configuration to file",
+                directory=suggested_name,
+                filter="Configuration files (*.ini);;All Files (*)",
+                options=options,
+            )
+            if not fn:
+                return
+
+        fn = Path(fn)
+        try:
+            with open(fn, "w") as f:
+                cp.write(f)
+        except Exception as err:  # pylint: disable=broad-except
+            print("ERROR: Failed to write configuration to file")
+            pft(err, 3)
+        else:
+            print("Succesfully saved configuration file: %s" % fn)
+
+    def load_config_from_file(self, from_default=True):
+        config = self.ard_qdev.config  # Shorthand
+
+        if from_default:
+            fn = DEFAULT_CONFIG_FILE
+        else:  # Ask user for filename
+            options = QFileDialog.Options()
+            # options |= QFileDialog.DontUseNativeDialog
+            fn, _ = QFileDialog.getOpenFileName(
+                self,
+                caption="Load Humidistat configuration from file",
+                directory="",
+                filter="Configuration files (*.ini);;All Files (*)",
+                options=options,
+            )
+            if not fn:
+                return
+
+        fn = Path(fn)
+        cp = ConfigParser()
+        try:
+            cp.read(fn)
+        except Exception as err:  # pylint: disable=broad-except
+            print("ERROR: Failed to load configuration from file")
+            pft(err, 3)
+            return
+
+        try:
+            descr = "Humidistat"
+            config.actors_incr_RH.ENA_valve_1 = cp.getboolean(
+                descr, "actors_incr_RH_ENA_valve_1"
+            )
+            config.actors_incr_RH.ENA_valve_2 = cp.getboolean(
+                descr, "actors_incr_RH_ENA_valve_2"
+            )
+            config.actors_incr_RH.ENA_pump = cp.getboolean(
+                descr, "actors_incr_RH_ENA_pump"
+            )
+            config.actors_decr_RH.ENA_valve_1 = cp.getboolean(
+                descr, "actors_decr_RH_ENA_valve_1"
+            )
+            config.actors_decr_RH.ENA_valve_2 = cp.getboolean(
+                descr, "actors_decr_RH_ENA_valve_2"
+            )
+            config.actors_decr_RH.ENA_pump = cp.getboolean(
+                descr, "actors_decr_RH_ENA_pump"
+            )
+            config.act_on_sensor_no = cp.getint(descr, "act_on_sensor_no")
+            config.fineband_dHI = cp.getfloat(descr, "fineband_dHI")
+            config.fineband_dLO = cp.getfloat(descr, "fineband_dLO")
+            config.deadband_dHI = cp.getfloat(descr, "deadband_dHI")
+            config.deadband_dLO = cp.getfloat(descr, "deadband_dLO")
+            config.burst_update_period = cp.getint(descr, "burst_update_period")
+            config.burst_incr_RH_length = cp.getint(
+                descr, "burst_incr_RH_length"
+            )
+            config.burst_decr_RH_length = cp.getint(
+                descr, "burst_decr_RH_length"
+            )
+        except Exception as err:  # pylint: disable=broad-except
+            print("ERROR: Failed to load configuration from file")
+            pft(err, 3)
+        else:
+            print("Succesfully loaded configuration file: %s" % fn)
+            self.populate_configuration()

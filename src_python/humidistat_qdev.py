@@ -28,7 +28,7 @@ class ControlBand(Enum):
     Dead = 2
 
 
-class ActuatorManager:
+class Actuators:
     """Holds which actuators to enable to either increase or decrease the
     humidity. Hence, two instances of this class should be created."""
 
@@ -66,8 +66,8 @@ class Humidistat_qdev(QDeviceIO):
         def __init__(self):
             # fmt: off
             # Actuators
-            self.actuators_incr = ActuatorManager(True, False, True)
-            self.actuators_decr = ActuatorManager(False, True, True)
+            self.actors_incr_RH = Actuators(True, False, True)
+            self.actors_decr_RH = Actuators(False, True, True)
             self.act_on_sensor_no = 1  # [1 or 2]
 
             # Bandwidths
@@ -78,7 +78,7 @@ class Humidistat_qdev(QDeviceIO):
 
             # Fine 'burst' control mode
             self.burst_update_period = 10     # [s]
-            self.burst_incr_RH_length = 1000   # [ms]
+            self.burst_incr_RH_length = 1000  # [ms]
             self.burst_decr_RH_length = 1000  # [ms]
             # fmt: on
 
@@ -111,6 +111,9 @@ class Humidistat_qdev(QDeviceIO):
     #   Arduino communication functions
     # --------------------------------------------------------------------------
 
+    def reconnect_BME280_sensors(self):
+        self.send(self.dev.write, "r")
+
     def set_valve_1(self, flag: bool):
         if not self.state.valve_1 == flag:
             self.send(self.dev.write, "v1%u" % flag)
@@ -125,18 +128,18 @@ class Humidistat_qdev(QDeviceIO):
 
     def burst_incr_RH(self):
         command = "b%u%u%u%u" % (
-            self.config.actuators_incr.ENA_valve_1,
-            self.config.actuators_incr.ENA_valve_2,
-            self.config.actuators_incr.ENA_pump,
+            self.config.actors_incr_RH.ENA_valve_1,
+            self.config.actors_incr_RH.ENA_valve_2,
+            self.config.actors_incr_RH.ENA_pump,
             self.config.burst_incr_RH_length,
         )
         self.send(self.dev.write, command)
 
     def burst_decr_RH(self):
         command = "b%u%u%u%u" % (
-            self.config.actuators_decr.ENA_valve_1,
-            self.config.actuators_decr.ENA_valve_2,
-            self.config.actuators_decr.ENA_pump,
+            self.config.actors_decr_RH.ENA_valve_1,
+            self.config.actors_decr_RH.ENA_valve_2,
+            self.config.actors_decr_RH.ENA_pump,
             self.config.burst_decr_RH_length,
         )
         self.send(self.dev.write, command)

@@ -27,7 +27,7 @@ from humidistat_gui import MainWindow
 
 # Constants
 DAQ_INTERVAL_MS = 1000  # [ms] BME280 sensor spec sheet says >= 1000 ms
-DEBUG = True  # Show debug info in terminal?
+DEBUG = False  # Show debug info in terminal?
 
 # ------------------------------------------------------------------------------
 #   current_date_time_strings
@@ -150,13 +150,13 @@ def DAQ_function():
 
         if state.control_band == ControlBand.Coarse:
             if humi < state.setpoint:
-                ard_qdev.set_valve_1(config.actuators_incr.ENA_valve_1)
-                ard_qdev.set_valve_2(config.actuators_incr.ENA_valve_2)
-                ard_qdev.set_pump(config.actuators_incr.ENA_pump)
+                ard_qdev.set_valve_1(config.actors_incr_RH.ENA_valve_1)
+                ard_qdev.set_valve_2(config.actors_incr_RH.ENA_valve_2)
+                ard_qdev.set_pump(config.actors_incr_RH.ENA_pump)
             else:
-                ard_qdev.set_valve_1(config.actuators_decr.ENA_valve_1)
-                ard_qdev.set_valve_2(config.actuators_decr.ENA_valve_2)
-                ard_qdev.set_pump(config.actuators_decr.ENA_pump)
+                ard_qdev.set_valve_1(config.actors_decr_RH.ENA_valve_1)
+                ard_qdev.set_valve_2(config.actors_decr_RH.ENA_valve_2)
+                ard_qdev.set_pump(config.actors_decr_RH.ENA_pump)
 
         elif state.control_band == ControlBand.Fine:
             if state.control_band != state.control_band_prev:
@@ -279,6 +279,9 @@ if __name__ == "__main__":
     app = QtWid.QApplication(sys.argv)
     app.aboutToQuit.connect(about_to_quit)
     window = MainWindow(ard, ard_qdev, logger)
+
+    # Load default Humidistat configuration from file
+    window.load_config_from_file(from_default=True)
 
     # Start threads
     ard_qdev.start()
