@@ -185,14 +185,16 @@ class MainWindow(QWidget):
         # -------------------------
 
         # Left box
-        self.qlbl_update_counter = QLabel("0")
         self.qlbl_DAQ_rate = QLabel("DAQ: nan Hz")
         self.qlbl_DAQ_rate.setStyleSheet("QLabel {min-width: 7em}")
+        self.qlbl_update_counter = QLabel("0")
+        self.qlbl_recording_time = QLabel()
 
         vbox_left = QVBoxLayout()
-        vbox_left.addWidget(self.qlbl_update_counter, stretch=0)
-        vbox_left.addStretch(1)
         vbox_left.addWidget(self.qlbl_DAQ_rate, stretch=0)
+        vbox_left.addWidget(self.qlbl_update_counter, stretch=0)
+        vbox_left.addWidget(self.qlbl_recording_time, stretch=0)
+        vbox_left.addStretch(1)
 
         # Middle box
         self.qlbl_title = QLabel(
@@ -215,15 +217,23 @@ class MainWindow(QWidget):
         vbox_middle.addWidget(self.qpbt_record)
 
         # Right box
-        self.qpbt_exit = QPushButton("Exit")
+        p = {"alignment": QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter}
+        self.qpbt_exit = QPushButton("Exit", minimumHeight=30)
         self.qpbt_exit.clicked.connect(self.close)
-        self.qpbt_exit.setMinimumHeight(30)
-        self.qlbl_recording_time = QLabel(alignment=QtCore.Qt.AlignRight)
+        self.qlbl_GitHub = QLabel(
+            '<a href="%s">Documentation</a>' % __url__, **p
+        )
+        self.qlbl_GitHub.setTextFormat(QtCore.Qt.RichText)
+        self.qlbl_GitHub.setTextInteractionFlags(
+            QtCore.Qt.TextBrowserInteraction
+        )
+        self.qlbl_GitHub.setOpenExternalLinks(True)
 
         vbox_right = QVBoxLayout()
         vbox_right.addWidget(self.qpbt_exit, stretch=0)
         vbox_right.addStretch(1)
-        vbox_right.addWidget(self.qlbl_recording_time, stretch=0)
+        vbox_right.addWidget(self.qlbl_GitHub)
+        vbox_right.addWidget(QLabel(__author__, **p))
 
         # Round up top frame
         hbox_top = QHBoxLayout()
@@ -720,7 +730,11 @@ class MainWindow(QWidget):
             "DAQ: %.1f Hz" % ard_qdev.obtained_DAQ_rate_Hz
         )
         if self.logger.is_recording():
-            self.qlbl_recording_time.setText(self.logger.pretty_elapsed())
+            self.qlbl_recording_time.setText(
+                "REC: %s" % self.logger.pretty_elapsed()
+            )
+        else:
+            self.qlbl_recording_time.setText("")
 
         self.qlin_humi_1.setText("%.1f" % state.humi_1)
         self.qlin_temp_1.setText("%.1f" % state.temp_1)
