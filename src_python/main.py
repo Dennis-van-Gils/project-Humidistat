@@ -135,7 +135,7 @@ def DAQ_function():
     # We will use PC time instead
     state.time = time.perf_counter()
 
-    # Control mechanism
+    # Measurement bandwidth control mechanism
     humi = state.humi_1 if config.act_on_sensor_no == 1 else state.humi_2
     humi_err = humi - state.setpoint
 
@@ -147,7 +147,6 @@ def DAQ_function():
         state.control_band = ControlBand.Coarse
 
     if state.control_mode == ControlMode.Auto:
-
         if state.control_band == ControlBand.Coarse:
             if humi < state.setpoint:
                 ard_qdev.set_valve_1(config.actors_incr_RH.ENA_valve_1)
@@ -163,7 +162,7 @@ def DAQ_function():
                 # Restart burst timer as soon as we enter the fine-band
                 state.t_burst = time.perf_counter()
 
-                # And make sure we close all
+                # And make sure we close all actuators
                 ard_qdev.set_valve_1(False)
                 ard_qdev.set_valve_2(False)
                 ard_qdev.set_pump(False)
@@ -178,7 +177,7 @@ def DAQ_function():
                 state.t_burst = time.perf_counter()
 
         else:
-            # Deadband
+            # Dead-band
             ard_qdev.set_valve_1(False)
             ard_qdev.set_valve_2(False)
             ard_qdev.set_pump(False)
@@ -255,9 +254,9 @@ if __name__ == "__main__":
     ard.auto_connect(filepath_last_known_port="config/port_Arduino.txt")
 
     if not (ard.is_alive):
-        print("\nCheck connection and try resetting the Arduino.")
-        print("Exiting...\n")
-        sys.exit(0)
+        print("\nCheck connection and try resetting the Arduino.\n")
+        # print("Exiting...\n")
+        # sys.exit(0)
 
     # Set up multi-threaded communication: Creates workers and threads
     ard_qdev = Humidistat_qdev(
@@ -280,11 +279,11 @@ if __name__ == "__main__":
     app.aboutToQuit.connect(about_to_quit)
     window = MainWindow(ard, ard_qdev, logger)
 
-    # Load default Humidistat configuration from file
-    window.load_config_from_file(from_default=True)
-
     # Start threads
     ard_qdev.start()
+
+    # Load default Humidistat configuration from file
+    window.load_config_from_file(from_default=True)
 
     # Start the main GUI event loop
     window.show()
