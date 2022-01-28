@@ -7,7 +7,7 @@ Manages the graphical user interface
 __author__ = "Dennis van Gils"
 __authoremail__ = "vangils.dennis@gmail.com"
 __url__ = "https://github.com/Dennis-van-Gils/project-Humidistat"
-__date__ = "25-01-2021"
+__date__ = "28-01-2021"
 __version__ = "1.0"
 # pylint: disable=bare-except, broad-except, unnecessary-lambda
 
@@ -162,7 +162,6 @@ class MainWindow(QWidget):
 
         # Shorthands
         state = self.ard_qdev.state
-        config = self.ard_qdev.config
 
         self.setWindowTitle("Humidistat")
         self.setGeometry(350, 60, 1200, 900)
@@ -263,45 +262,44 @@ class MainWindow(QWidget):
 
         self.curve_humi_1 = HistoryChartCurve(
             capacity=capacity,
-            linked_curve=self.pi_humi.plot(pen=PEN_01, name="H_1"),
+            linked_curve=self.pi_humi.plot(pen=PEN_01, name="H"),
         )
         self.curve_temp_1 = HistoryChartCurve(
             capacity=capacity,
-            linked_curve=self.pi_temp.plot(pen=PEN_01, name="T_1"),
+            linked_curve=self.pi_temp.plot(pen=PEN_01, name="T"),
         )
         self.curve_pres_1 = HistoryChartCurve(
             capacity=capacity,
-            linked_curve=self.pi_pres.plot(pen=PEN_01, name="P_1"),
+            linked_curve=self.pi_pres.plot(pen=PEN_01, name="P"),
         )
         self.curve_humi_2 = HistoryChartCurve(
             capacity=capacity,
-            linked_curve=self.pi_humi.plot(pen=PEN_02, name="H_2"),
+            linked_curve=self.pi_humi.plot(pen=PEN_02, name="H"),
         )
         self.curve_temp_2 = HistoryChartCurve(
             capacity=capacity,
-            linked_curve=self.pi_temp.plot(pen=PEN_02, name="T_2"),
+            linked_curve=self.pi_temp.plot(pen=PEN_02, name="T"),
         )
         self.curve_pres_2 = HistoryChartCurve(
             capacity=capacity,
-            linked_curve=self.pi_pres.plot(pen=PEN_02, name="P_2"),
+            linked_curve=self.pi_pres.plot(pen=PEN_02, name="P"),
         )
-        # self.curve_setpoint = HistoryChartCurve(
-        #    capacity=capacity,
-        #    linked_curve=self.pi_humi.plot(pen=PEN_03, name="SP"),
-        # )
+        self.curve_setpoint = HistoryChartCurve(
+            capacity=capacity,
+            linked_curve=self.pi_humi.plot(pen=PEN_03, name=""),
+        )
 
         self.curves_1 = [
             self.curve_humi_1,
             self.curve_temp_1,
             self.curve_pres_1,
-            # self.curve_setpoint,
         ]
         self.curves_2 = [
             self.curve_humi_2,
             self.curve_temp_2,
             self.curve_pres_2,
         ]
-        self.curves = self.curves_1 + self.curves_2
+        self.curves = self.curves_1 + self.curves_2 + [self.curve_setpoint]
 
         #  Group `Readings`
         # -------------------------
@@ -433,6 +431,10 @@ class MainWindow(QWidget):
             readOnly=True, maximumWidth=80, alignment=QtCore.Qt.AlignHCenter
         )
 
+        legend_setpoint = LegendSelect(
+            linked_curves=[self.curve_setpoint], hide_toggle_button=True
+        )
+
         self.qpbt_control_mode = controls.create_Toggle_button("Manual control")
         self.qpbt_control_mode.clicked.connect(self.process_qpbt_control_mode)
 
@@ -461,6 +463,7 @@ class MainWindow(QWidget):
         grid.addWidget(QLabel("Setpoint:")    , i, 0)
         grid.addWidget(self.qlin_setpoint     , i, 1)
         grid.addWidget(QLabel("% RH")         , i, 2)      ; i +=1
+        grid.addLayout(legend_setpoint.grid   , i, 1, 1, 2); i +=1
         grid.addWidget(QLabel("Band:")        , i, 0)
         grid.addWidget(self.qlin_control_band , i, 1, 1, 2); i +=1
         grid.addItem(QSpacerItem(0, 8)        , i, 0)      ; i +=1
@@ -680,7 +683,6 @@ class MainWindow(QWidget):
         # Shorthands
         ard_qdev = self.ard_qdev
         state = self.ard_qdev.state
-        config = self.ard_qdev.config
 
         self.qlbl_update_counter.setText("%i" % ard_qdev.update_counter_DAQ)
         self.qlbl_DAQ_rate.setText(

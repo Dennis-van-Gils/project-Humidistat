@@ -7,7 +7,7 @@ Manages multi-threaded communication with the Arduino
 __author__ = "Dennis van Gils"
 __authoremail__ = "vangils.dennis@gmail.com"
 __url__ = "https://github.com/Dennis-van-Gils/project-Humidistat"
-__date__ = "25-01-2021"
+__date__ = "28-01-2021"
 __version__ = "1.0"
 
 from enum import Enum
@@ -68,7 +68,7 @@ class Humidistat_qdev(QDeviceIO):
             # Actuators
             self.actuators_incr = ActuatorManager(True, False, True)
             self.actuators_decr = ActuatorManager(False, True, True)
-            self.act_on_sensor_no = 2  # [1 or 2]
+            self.act_on_sensor_no = 1  # [1 or 2]
 
             # Bandwidths
             self.fineband_dHI = +2     # [% RH]
@@ -78,7 +78,7 @@ class Humidistat_qdev(QDeviceIO):
 
             # Fine 'burst' control mode
             self.burst_update_period = 10     # [s]
-            self.burst_incr_RH_length = 500   # [ms]
+            self.burst_incr_RH_length = 1000   # [ms]
             self.burst_decr_RH_length = 1000  # [ms]
             # fmt: on
 

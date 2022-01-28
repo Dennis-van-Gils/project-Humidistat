@@ -7,7 +7,7 @@ A humidity controller for fluid dynamics research
 __author__ = "Dennis van Gils"
 __authoremail__ = "vangils.dennis@gmail.com"
 __url__ = "https://github.com/Dennis-van-Gils/project-Humidistat"
-__date__ = "22-01-2021"
+__date__ = "28-01-2021"
 __version__ = "1.0"
 # pylint: disable=bare-except, broad-except
 
@@ -17,7 +17,6 @@ import time
 from PyQt5 import QtCore
 from PyQt5 import QtWidgets as QtWid
 from PyQt5.QtCore import QDateTime
-import numpy as np
 
 from dvg_pyqt_filelogger import FileLogger
 from dvg_debug_functions import dprint, print_fancy_traceback as pft
@@ -86,6 +85,9 @@ def about_to_quit():
 
 
 def DAQ_function():
+    # WARNING: Do not change the GUI directly from out of this function as it
+    # will be running in a separate and different thread to the main/GUI thread.
+
     # Shorthands
     state = ard_qdev.state
     config = ard_qdev.config
@@ -190,7 +192,7 @@ def DAQ_function():
     window.curve_humi_2.appendData(state.time, state.humi_2)
     window.curve_temp_2.appendData(state.time, state.temp_2)
     window.curve_pres_2.appendData(state.time, state.pres_2)
-    # window.curve_setpoint.appendData(state.time, state.setpoint)
+    window.curve_setpoint.appendData(state.time, state.setpoint)
 
     # Logging to file
     logger.update(mode="w")
