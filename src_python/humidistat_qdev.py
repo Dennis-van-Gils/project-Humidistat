@@ -7,14 +7,14 @@ Manages multi-threaded communication with the Arduino
 __author__ = "Dennis van Gils"
 __authoremail__ = "vangils.dennis@gmail.com"
 __url__ = "https://github.com/Dennis-van-Gils/project-Humidistat"
-__date__ = "28-01-2021"
+__date__ = "01-02-2021"
 __version__ = "1.0"
 
 from enum import Enum
 import numpy as np
 
 from dvg_devices.Arduino_protocol_serial import Arduino
-from dvg_qdeviceio import QDeviceIO
+from dvg_qdeviceio import QDeviceIO, DAQ_TRIGGER
 
 
 class ControlMode(Enum):
@@ -59,7 +59,7 @@ class Humidistat_qdev(QDeviceIO):
             self.setpoint = 50  # [% RH]
             self.control_mode = ControlMode.Manual
             self.control_band = ControlBand.Coarse
-            self.control_band_prev = ControlBand.Coarse
+            self.control_band_prev = None
             self.t_burst = 0  # [s], timestamp at start of burst period
 
     class Config(object):
@@ -90,7 +90,6 @@ class Humidistat_qdev(QDeviceIO):
         self,
         dev: Arduino,
         DAQ_function=None,
-        DAQ_interval_ms=1000,
         debug=False,
         **kwargs,
     ):
@@ -100,8 +99,8 @@ class Humidistat_qdev(QDeviceIO):
         self.config = self.Config()
 
         self.create_worker_DAQ(
+            DAQ_trigger=DAQ_TRIGGER.CONTINUOUS,
             DAQ_function=DAQ_function,
-            DAQ_interval_ms=DAQ_interval_ms,
             critical_not_alive_count=3,
             debug=debug,
         )
@@ -125,6 +124,14 @@ class Humidistat_qdev(QDeviceIO):
     def set_pump(self, flag: bool):
         if not self.state.pump == flag:
             self.send(self.dev.write, "p%u" % flag)
+
+    def set_actuators(self, valve_1: bool, valve_2: bool, pump: bool):
+        if (
+            (not self.state.valve_1 == valve_1)
+            or (not self.state.valve_2 == valve_2)
+            or (not self.state.pump == pump)
+        ):
+            self.send(self.dev.write, "a%u%u%u" % (valve_1, valve_2, pump))
 
     def burst_incr_RH(self):
         command = "b%u%u%u%u" % (

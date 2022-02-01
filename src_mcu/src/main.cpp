@@ -18,9 +18,12 @@
     - Green: All okay and idling
   Every read out, the LED will flash brightly turquoise.
 
+  The Arduino will autonomously read out the sensor data at fixed time intervals
+  and will report these readings over serial.
+
   https://github.com/Dennis-van-Gils/project-Humidistat
   Dennis van Gils
-  25-01-2022
+  01-02-2022
 *******************************************************************************/
 
 #include <Arduino.h>
@@ -38,7 +41,8 @@
 #define PIN_PUMP 13
 
 // BME280: Temperature, humidity and pressure sensors
-#define DAQ_PERIOD 1000 // [ms] Data-acquisition period, 1 sec at minimum
+// NOTE: Do not read out faster than once per second as per BME280 spec-sheet.
+#define DAQ_PERIOD 1000 // [ms] Data-acquisition period
 Adafruit_BME280 bme_1;
 Adafruit_BME280 bme_2;
 
@@ -81,23 +85,6 @@ struct Request {
 };
 Request request;
 
-void update_actuators() {
-  /* Grants the requested actuator states
-   */
-  if (request.valve_1 != state.valve_1) {
-    state.valve_1 = request.valve_1;
-    digitalWrite(PIN_VALVE_1, state.valve_1);
-  }
-  if (request.valve_2 != state.valve_2) {
-    state.valve_2 = request.valve_2;
-    digitalWrite(PIN_VALVE_2, state.valve_2);
-  }
-  if (request.pump != state.pump) {
-    state.pump = request.pump;
-    digitalWrite(PIN_PUMP, state.pump);
-  }
-}
-
 void connect_BME280_sensors() {
   uint8_t idx_try;
   bool success;
@@ -118,7 +105,8 @@ void connect_BME280_sensors() {
 }
 
 void read_BME280_sensors() {
-  /* Update the sensor readings and save in `state`
+  /* Update the sensor readings and save in `state`.
+  NOTE: Do not read out faster than once per second as per BME280 spec-sheet.
    */
   state.temp_1 = bme_1.readTemperature();
   state.humi_1 = bme_1.readHumidity();
@@ -129,18 +117,8 @@ void read_BME280_sensors() {
   state.pres_2 = bme_2.readPressure();
 }
 
-void perform_measurement_and_report(uint32_t now, uint32_t t_0) {
-  /* Perform a single measurement and report over serial
-   */
-
-  // Set RGB LED to bright turquoise: Performing new measurement
-  neo_flash = true;
-  t_neo_flash = now;
-  neo.setPixelColor(0, neo.Color(0, NEO_BRIGHT, NEO_BRIGHT));
-  neo.show();
-
-  read_BME280_sensors();
-
+void report(uint32_t now, uint32_t t_0) {
+  // Report `state` over serial
   Serial.print(now - t_0);
   Serial.write('\t');
   Serial.print(state.valve_1);
@@ -161,6 +139,20 @@ void perform_measurement_and_report(uint32_t now, uint32_t t_0) {
   Serial.write('\t');
   Serial.print(state.pres_2, 0);
   Serial.write('\n');
+}
+
+void measure_and_report(uint32_t now, uint32_t t_0) {
+  /* Perform a single measurement, update `state` and report over serial.
+   */
+
+  // Set RGB LED to bright turquoise: Performing new measurement
+  neo_flash = true;
+  t_neo_flash = now;
+  neo.setPixelColor(0, neo.Color(0, NEO_BRIGHT, NEO_BRIGHT));
+  neo.show();
+
+  read_BME280_sensors();
+  report(now, t_0);
 }
 
 bool parseBoolInString(char *strIn, uint8_t iPos) {
@@ -213,7 +205,6 @@ void setup() {
 
 void loop() {
   char *str_cmd; // Incoming serial command string
-  static bool reporting_continuously = false;
   uint32_t now = millis();
   static uint32_t t_0 = now;
   static uint32_t tick = now;
@@ -230,9 +221,18 @@ void loop() {
     if (strcmp(str_cmd, "id?") == 0) {
       Serial.println("Arduino, Humidistat v1");
 
+    } else if (strncmp(str_cmd, "a", 1) == 0) {
+      // Request new actuator states all at once
+      // Command parameters:
+      //  "a"[0/1: valve_1?][0/1: valve_2?][0/1: pump?]
+      //   E.g: "a101" to open valve_1, close valve_2 and enable the pump
+      request.valve_1 = parseBoolInString(str_cmd, 1);
+      request.valve_2 = parseBoolInString(str_cmd, 2);
+      request.pump = parseBoolInString(str_cmd, 3);
+
     } else if (strncmp(str_cmd, "b", 1) == 0) {
-      // `Burst` mode: Open valve 1 and/or valve 2 and/or the pump for a short
-      // fixed time duration. Closes all again after the elapsed time.
+      // `Burst` mode: Request open valve 1 and/or valve 2 and/or the pump for a
+      // short fixed time duration. Closes all again after the elapsed time.
       // Command parameters:
       //  "b"[0/1: valve_1?][0/1: valve_2?][0/1: pump?][int: duration in ms]
       //   E.g: "b101500" to open valve_1 and the pump for 500 ms
@@ -242,58 +242,58 @@ void loop() {
       T_burst = parseIntInString(str_cmd, 4);
       t_burst = now;
       burst = true;
-      update_actuators();
 
     } else if (strncmp(str_cmd, "v1", 2) == 0) {
       // Turn valve 1 on/off
       request.valve_1 = parseBoolInString(str_cmd, 2);
-      update_actuators();
 
     } else if (strncmp(str_cmd, "v2", 2) == 0) {
       // Turn valve 2 on/off
       request.valve_2 = parseBoolInString(str_cmd, 2);
-      update_actuators();
 
     } else if (strncmp(str_cmd, "p", 1) == 0) {
       // Turn pump on/off
       request.pump = parseBoolInString(str_cmd, 1);
-      update_actuators();
-
-    } else if (strncmp(str_cmd, "q", 1) == 0) {
-      // Close all
-      request.valve_1 = false;
-      request.valve_2 = false;
-      request.pump = false;
-      update_actuators();
 
     } else if (strcmp(str_cmd, "r") == 0) {
       // Try to reconnect to BME280's
       connect_BME280_sensors();
-
-    } else if (strcmp(str_cmd, "c") == 0) {
-      // Continuously perform measurements and report over serial
-      reporting_continuously = !reporting_continuously;
-
-    } else if (strcmp(str_cmd, "?") == 0) {
-      // Perform a single measurement and report over serial
-      reporting_continuously = false;
-      perform_measurement_and_report(now, t_0);
     }
   }
 
-  // Burst control
-  if (burst && (now - t_burst > T_burst)) {
+  // Request to turn off actuators at end of burst
+  if (burst && (now - t_burst >= T_burst)) {
     burst = false;
     request.valve_1 = false;
     request.valve_2 = false;
     request.pump = false;
-    update_actuators();
   }
+
+  // Grant all requested actuator states
+  bool change_detected = false;
+  if (request.valve_1 != state.valve_1) {
+    state.valve_1 = request.valve_1;
+    digitalWrite(PIN_VALVE_1, state.valve_1);
+    change_detected = true;
+  }
+  if (request.valve_2 != state.valve_2) {
+    state.valve_2 = request.valve_2;
+    digitalWrite(PIN_VALVE_2, state.valve_2);
+    change_detected = true;
+  }
+  if (request.pump != state.pump) {
+    state.pump = request.pump;
+    digitalWrite(PIN_PUMP, state.pump);
+    change_detected = true;
+  }
+
+  // Report immediately over serial when actuators have changed state
+  if (change_detected) { report(now, t_0); }
 
   // DAQ
   if (now - tick >= DAQ_PERIOD) {
     tick += DAQ_PERIOD; // Strict-interval time keeping
-    if (reporting_continuously) { perform_measurement_and_report(now, t_0); }
+    measure_and_report(now, t_0);
   }
 
   // Set RGB LED back to dim green: Measurement is done

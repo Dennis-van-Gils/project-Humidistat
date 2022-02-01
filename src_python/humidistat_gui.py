@@ -7,7 +7,7 @@ Manages the graphical user interface
 __author__ = "Dennis van Gils"
 __authoremail__ = "vangils.dennis@gmail.com"
 __url__ = "https://github.com/Dennis-van-Gils/project-Humidistat"
-__date__ = "28-01-2021"
+__date__ = "01-02-2021"
 __version__ = "1.0"
 # pylint: disable=bare-except, broad-except, unnecessary-lambda
 
@@ -35,7 +35,7 @@ import pyqtgraph as pg
 import dvg_monkeypatch_pyqtgraph  # pylint: disable=unused-import
 
 import dvg_pyqt_controls as controls
-from dvg_debug_functions import tprint, print_fancy_traceback as pft
+from dvg_debug_functions import dprint, tprint, print_fancy_traceback as pft
 from dvg_pyqt_filelogger import FileLogger
 from dvg_pyqtgraph_threadsafe import (
     HistoryChartCurve,
@@ -833,11 +833,10 @@ class MainWindow(QWidget):
             self.ard_qdev.state.control_mode = ControlMode.Auto
         else:
             # Switch to manual control
+            # Will automatically turn off all actuators
             self.qpbt_control_mode.setText("Manual control")
             self.ard_qdev.state.control_mode = ControlMode.Manual
-            self.ard_qdev.set_valve_1(False)
-            self.ard_qdev.set_valve_2(False)
-            self.ard_qdev.set_pump(False)
+            self.ard_qdev.set_actuators(False, False, False)
 
         flag = self.ard_qdev.state.control_mode == ControlMode.Manual
         self.qpbt_valve_1.setEnabled(flag)
@@ -1008,10 +1007,10 @@ class MainWindow(QWidget):
             with open(fn, "w") as f:
                 cp.write(f)
         except Exception as err:  # pylint: disable=broad-except
-            print("ERROR: Failed to write configuration to file")
-            pft(err, 3)
+            dprint("ERROR: Failed to write configuration to file")
+            pft(err)
         else:
-            print("Succesfully saved configuration file: %s" % fn)
+            dprint("Succesfully saved configuration file: %s" % fn)
 
     def load_config_from_file(self, from_default=True):
         config = self.ard_qdev.config  # Shorthand
@@ -1036,8 +1035,8 @@ class MainWindow(QWidget):
         try:
             cp.read(fn)
         except Exception as err:  # pylint: disable=broad-except
-            print("ERROR: Failed to load configuration from file")
-            pft(err, 3)
+            dprint("ERROR: Failed to load configuration from file")
+            pft(err)
             return
 
         try:
@@ -1073,8 +1072,8 @@ class MainWindow(QWidget):
                 descr, "burst_decr_RH_length"
             )
         except Exception as err:  # pylint: disable=broad-except
-            print("ERROR: Failed to load configuration from file")
-            pft(err, 3)
+            dprint("ERROR: Failed to load configuration from file")
+            pft(err)
         else:
-            print("Succesfully loaded configuration file: %s" % fn)
+            dprint("Succesfully loaded configuration file: %s" % fn)
             self.populate_configuration()

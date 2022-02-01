@@ -7,7 +7,7 @@ A humidity controller for fluid dynamics research
 __author__ = "Dennis van Gils"
 __authoremail__ = "vangils.dennis@gmail.com"
 __url__ = "https://github.com/Dennis-van-Gils/project-Humidistat"
-__date__ = "28-01-2021"
+__date__ = "01-02-2021"
 __version__ = "1.0"
 # pylint: disable=bare-except, broad-except
 
@@ -25,9 +25,8 @@ from dvg_devices.Arduino_protocol_serial import Arduino
 from humidistat_qdev import Humidistat_qdev, ControlMode, ControlBand
 from humidistat_gui import MainWindow
 
-# Constants
-DAQ_INTERVAL_MS = 1000  # [ms] BME280 sensor spec sheet says >= 1000 ms
-DEBUG = False  # Show debug info in terminal?
+# Show debug info in terminal?
+DEBUG = False
 
 # ------------------------------------------------------------------------------
 #   current_date_time_strings
@@ -84,7 +83,7 @@ def about_to_quit():
 # ------------------------------------------------------------------------------
 
 
-def DAQ_function():
+def DAQ_function() -> bool:
     # WARNING: Do not change the GUI directly from out of this function as it
     # will be running in a separate and different thread to the main/GUI thread.
 
@@ -95,8 +94,10 @@ def DAQ_function():
     # Date-time keeping
     str_cur_date, str_cur_time = current_date_time_strings()
 
-    # Query the Arduino for its state
-    success, tmp_state = ard.query_ascii_values("?", delimiter="\t")
+    # Listen to the Arduino for sensor readings send out over serial
+    success, reply = ard.readline()
+    dprint(reply)
+
     if not (success):
         dprint(
             "'%s' reports IOError @ %s %s"
@@ -117,7 +118,9 @@ def DAQ_function():
             state.temp_2,
             state.pres_1,
             state.pres_2,
-        ) = tmp_state
+        ) = list(
+            map(float, reply.split("\t"))
+        )  # Parse all as float to allow for "nan" values in the reply string
         state.valve_1 = bool(state.valve_1)
         state.valve_2 = bool(state.valve_2)
         state.pump = bool(state.pump)
@@ -125,7 +128,7 @@ def DAQ_function():
         state.pres_1 /= 100  # [Pa] to [mbar]
         state.pres_2 /= 100  # [Pa] to [mbar]
     except Exception as err:
-        pft(err, 3)
+        pft(err)
         dprint(
             "'%s' reports IOError @ %s %s"
             % (ard.name, str_cur_date, str_cur_time)
@@ -141,34 +144,41 @@ def DAQ_function():
 
     if (humi_err > config.deadband_dLO) & (humi_err < config.deadband_dHI):
         state.control_band = ControlBand.Dead
+        if state.control_band != state.control_band_prev:
+            dprint("Control band: DEAD")
     elif (humi_err > config.fineband_dLO) & (humi_err < config.fineband_dHI):
         state.control_band = ControlBand.Fine
+        if state.control_band != state.control_band_prev:
+            dprint("Control band: FINE")
     else:
         state.control_band = ControlBand.Coarse
+        if state.control_band != state.control_band_prev:
+            dprint("Control band: COARSE")
 
     if state.control_mode == ControlMode.Auto:
         if state.control_band == ControlBand.Coarse:
             if humi < state.setpoint:
-                ard_qdev.set_valve_1(config.actors_incr_RH.ENA_valve_1)
-                ard_qdev.set_valve_2(config.actors_incr_RH.ENA_valve_2)
-                ard_qdev.set_pump(config.actors_incr_RH.ENA_pump)
+                ard_qdev.set_actuators(
+                    config.actors_incr_RH.ENA_valve_1,
+                    config.actors_incr_RH.ENA_valve_2,
+                    config.actors_incr_RH.ENA_pump,
+                )
             else:
-                ard_qdev.set_valve_1(config.actors_decr_RH.ENA_valve_1)
-                ard_qdev.set_valve_2(config.actors_decr_RH.ENA_valve_2)
-                ard_qdev.set_pump(config.actors_decr_RH.ENA_pump)
+                ard_qdev.set_actuators(
+                    config.actors_decr_RH.ENA_valve_1,
+                    config.actors_decr_RH.ENA_valve_2,
+                    config.actors_decr_RH.ENA_pump,
+                )
 
         elif state.control_band == ControlBand.Fine:
             if state.control_band != state.control_band_prev:
-                # Restart burst timer as soon as we enter the fine-band
+                # Restart burst timer as soon as we enter the fine-band and
+                # ensure we turn off all actuators
                 state.t_burst = time.perf_counter()
-
-                # And make sure we close all actuators
-                ard_qdev.set_valve_1(False)
-                ard_qdev.set_valve_2(False)
-                ard_qdev.set_pump(False)
+                ard_qdev.set_actuators(False, False, False)
 
             if time.perf_counter() - state.t_burst > config.burst_update_period:
-                # Timer fired
+                # Burst timer fired
                 if humi < state.setpoint:
                     ard_qdev.burst_incr_RH()
                 else:
@@ -177,10 +187,8 @@ def DAQ_function():
                 state.t_burst = time.perf_counter()
 
         else:
-            # Dead-band
-            ard_qdev.set_valve_1(False)
-            ard_qdev.set_valve_2(False)
-            ard_qdev.set_pump(False)
+            # Dead-band: Turn off all actuators
+            ard_qdev.set_actuators(False, False, False)
 
     state.control_band_prev = state.control_band
 
@@ -232,7 +240,7 @@ def write_header_to_log():
 def write_data_to_log():
     state = ard_qdev.state  # Shorthand
     logger.write(
-        "%.0f\t%u\t%u\t%u\t%.1f\t%.1f\t%.1f\t%.1f\t%.1f\t%.1f\n"
+        "%.3f\t%u\t%u\t%u\t%.1f\t%.1f\t%.1f\t%.1f\t%.1f\t%.1f\n"
         % (
             logger.elapsed(),
             state.valve_1,
@@ -268,7 +276,6 @@ if __name__ == "__main__":
     ard_qdev = Humidistat_qdev(
         dev=ard,
         DAQ_function=DAQ_function,
-        DAQ_interval_ms=DAQ_INTERVAL_MS,
         debug=DEBUG,
     )
     ard_qdev.signal_connection_lost.connect(notify_connection_lost)
@@ -286,7 +293,8 @@ if __name__ == "__main__":
     window = MainWindow(ard, ard_qdev, logger)
 
     # Start threads
-    ard_qdev.start()
+    ard_qdev.start()  # NOTE: The DAQ worker thread starts up in a paused state
+    ard_qdev.unpause_DAQ()  # Start listening continuously to the Arduino
 
     # Load default Humidistat configuration from file
     window.load_config_from_file(from_default=True)
