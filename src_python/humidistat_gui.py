@@ -275,36 +275,52 @@ class MainWindow(QWidget):
         PEN_01 = pg.mkPen(controls.COLOR_PEN_TURQUOISE, width=3)
         PEN_02 = pg.mkPen(controls.COLOR_PEN_YELLOW, width=3)
         PEN_03 = pg.mkPen(controls.COLOR_PEN_PINK, width=3)
+        PEN_04 = pg.mkPen(
+            controls.COLOR_PEN_PINK, width=1, style=QtCore.Qt.DotLine
+        )
 
-        self.curve_humi_1 = HistoryChartCurve(
-            capacity=capacity,
-            linked_curve=self.pi_humi.plot(pen=PEN_01, name="H"),
-        )
-        self.curve_temp_1 = HistoryChartCurve(
-            capacity=capacity,
-            linked_curve=self.pi_temp.plot(pen=PEN_01, name="T"),
-        )
-        self.curve_pres_1 = HistoryChartCurve(
-            capacity=capacity,
-            linked_curve=self.pi_pres.plot(pen=PEN_01, name="P"),
-        )
-        self.curve_humi_2 = HistoryChartCurve(
-            capacity=capacity,
-            linked_curve=self.pi_humi.plot(pen=PEN_02, name="H"),
-        )
-        self.curve_temp_2 = HistoryChartCurve(
-            capacity=capacity,
-            linked_curve=self.pi_temp.plot(pen=PEN_02, name="T"),
-        )
-        self.curve_pres_2 = HistoryChartCurve(
-            capacity=capacity,
-            linked_curve=self.pi_pres.plot(pen=PEN_02, name="P"),
-        )
-        self.curve_setpoint = HistoryChartCurve(
+        self.curve_setpoint = HistoryChartCurve(  # Setpoint
             capacity=capacity,
             linked_curve=self.pi_humi.plot(pen=PEN_03, name=""),
         )
+        self.curve_deadband_HI = HistoryChartCurve(  # Dead-band HI
+            capacity=capacity,
+            linked_curve=self.pi_humi.plot(pen=PEN_04, name=""),
+        )
+        self.curve_deadband_LO = HistoryChartCurve(  # Dead-band LO
+            capacity=capacity,
+            linked_curve=self.pi_humi.plot(pen=PEN_04, name=""),
+        )
+        self.curve_humi_1 = HistoryChartCurve(  # Sensor 1: Humidity
+            capacity=capacity,
+            linked_curve=self.pi_humi.plot(pen=PEN_01, name="H"),
+        )
+        self.curve_temp_1 = HistoryChartCurve(  # Sensor 1: Temperature
+            capacity=capacity,
+            linked_curve=self.pi_temp.plot(pen=PEN_01, name="T"),
+        )
+        self.curve_pres_1 = HistoryChartCurve(  # Sensor 1: Pressure
+            capacity=capacity,
+            linked_curve=self.pi_pres.plot(pen=PEN_01, name="P"),
+        )
+        self.curve_humi_2 = HistoryChartCurve(  # Sensor 2: Humidity
+            capacity=capacity,
+            linked_curve=self.pi_humi.plot(pen=PEN_02, name="H"),
+        )
+        self.curve_temp_2 = HistoryChartCurve(  # Sensor 2: Temperature
+            capacity=capacity,
+            linked_curve=self.pi_temp.plot(pen=PEN_02, name="T"),
+        )
+        self.curve_pres_2 = HistoryChartCurve(  # Sensor 2: Pressure
+            capacity=capacity,
+            linked_curve=self.pi_pres.plot(pen=PEN_02, name="P"),
+        )
 
+        self.curves_setpoint = [
+            self.curve_setpoint,
+            self.curve_deadband_HI,
+            self.curve_deadband_LO,
+        ]
         self.curves_1 = [
             self.curve_humi_1,
             self.curve_temp_1,
@@ -315,7 +331,7 @@ class MainWindow(QWidget):
             self.curve_temp_2,
             self.curve_pres_2,
         ]
-        self.curves = self.curves_1 + self.curves_2 + [self.curve_setpoint]
+        self.curves = self.curves_setpoint + self.curves_1 + self.curves_2
 
         #  Group `Readings`
         # -------------------------
@@ -472,6 +488,15 @@ class MainWindow(QWidget):
             linked_curves=[self.curve_setpoint], hide_toggle_button=True
         )
 
+        # Show/hide dead-band curves when clicking setpoint checkbox
+        def curves_deadband_setVisible(flag: bool):
+            self.curve_deadband_HI.setVisible(flag)
+            self.curve_deadband_LO.setVisible(flag)
+
+        legend_setpoint.chkbs[0].clicked.connect(
+            lambda checked: curves_deadband_setVisible(checked)
+        )
+
         # fmt: off
         i = 0
         grid = QGridLayout(spacing=4)
@@ -615,23 +640,23 @@ class MainWindow(QWidget):
 
         i = 0
         grid = QGridLayout(spacing=4)
-        grid.addWidget(QLabel("<b>Assign actuators</b>"), i, 0, 1, 3); i+=1
-        grid.addWidget(QLabel("RH ▲:")                  , i, 0)
-        grid.addWidget(self.qchk_incr_ENA_valve_1       , i, 1)
-        grid.addWidget(QLabel("RH ▼:")                  , i, 2)
-        grid.addWidget(self.qchk_decr_ENA_valve_1       , i, 3)      ; i+=1
-        grid.addWidget(self.qchk_incr_ENA_valve_2       , i, 1)
-        grid.addWidget(self.qchk_decr_ENA_valve_2       , i, 3)      ; i+=1
-        grid.addWidget(self.qchk_incr_ENA_pump          , i, 1)
-        grid.addWidget(self.qchk_decr_ENA_pump          , i, 3)      ; i+=1
-        grid.addItem(QSpacerItem(0, 6)                  , i, 0)      ; i+=1
-        grid.addWidget(QLabel("Act on:")                , i, 0)
-        grid.addWidget(self.qrbt_act_on_sensor_1        , i, 1, 1, 2); i+=1
-        grid.addWidget(self.qrbt_act_on_sensor_2        , i, 1, 1, 2); i+=1
-        grid.addItem(QSpacerItem(0, 4)                  , i, 0)      ; i+=1
-        grid.addLayout(grid2                            , i, 0, 1, 4); i+=1
-        grid.addItem(QSpacerItem(0, 4)                  , i, 0)      ; i+=1
-        grid.addLayout(grid3                            , i, 0, 1, 4)
+        grid.addWidget(QLabel("<b>Assign actuators</b>")   , i, 0, 1, 3); i+=1
+        grid.addWidget(QLabel("RH ▲:")                     , i, 0)
+        grid.addWidget(self.qchk_incr_ENA_valve_1          , i, 1)
+        grid.addWidget(QLabel("RH ▼:")                     , i, 2)
+        grid.addWidget(self.qchk_decr_ENA_valve_1          , i, 3)      ; i+=1
+        grid.addWidget(self.qchk_incr_ENA_valve_2          , i, 1)
+        grid.addWidget(self.qchk_decr_ENA_valve_2          , i, 3)      ; i+=1
+        grid.addWidget(self.qchk_incr_ENA_pump             , i, 1)
+        grid.addWidget(self.qchk_decr_ENA_pump             , i, 3)      ; i+=1
+        grid.addItem(QSpacerItem(0, 6)                     , i, 0)      ; i+=1
+        grid.addWidget(QLabel("Act on:")                   , i, 0)
+        grid.addWidget(self.qrbt_act_on_sensor_1           , i, 1, 1, 2); i+=1
+        grid.addWidget(self.qrbt_act_on_sensor_2           , i, 1, 1, 2); i+=1
+        grid.addItem(QSpacerItem(0, 4)                     , i, 0)      ; i+=1
+        grid.addLayout(grid2                               , i, 0, 1, 4); i+=1
+        grid.addItem(QSpacerItem(0, 4)                     , i, 0)      ; i+=1
+        grid.addLayout(grid3                               , i, 0, 1, 4)
         # fmt: on
 
         qgrp_config = QGroupBox("Configuration")
@@ -641,34 +666,23 @@ class MainWindow(QWidget):
         # -------------------------
 
         hbox1 = QHBoxLayout()
-        hbox1.addWidget(
-            qgrp_readings, alignment=QtCore.Qt.AlignLeft  # | QtCore.Qt.AlignTop
-        )
-        hbox1.addWidget(
-            qgrp_charts, alignment=QtCore.Qt.AlignLeft  # | QtCore.Qt.AlignTop
-        )
+        hbox1.addWidget(qgrp_control, alignment=QtCore.Qt.AlignLeft)
+        hbox1.addWidget(qgrp_config, alignment=QtCore.Qt.AlignLeft)
 
         hbox2 = QHBoxLayout()
-        hbox2.addWidget(
-            qgrp_control, alignment=QtCore.Qt.AlignLeft  # | QtCore.Qt.AlignTop
-        )
-        hbox2.addWidget(
-            qgrp_config, alignment=QtCore.Qt.AlignLeft  # | QtCore.Qt.AlignTop
-        )
+        hbox2.addWidget(qgrp_readings, alignment=QtCore.Qt.AlignLeft)
+        hbox2.addWidget(qgrp_charts, alignment=QtCore.Qt.AlignLeft)
 
         vbox = QVBoxLayout()
-        vbox.addWidget(qgrp_comments)
         vbox.addLayout(hbox1)
         vbox.addLayout(hbox2)
+        vbox.addWidget(qgrp_comments)
 
-        # fmt: off
         grid_bot = QGridLayout()
         grid_bot.addWidget(self.gw, 0, 0)
-        grid_bot.addLayout(vbox   , 0, 1)
-        # fmt: on
+        grid_bot.addLayout(vbox, 0, 1)
         grid_bot.setColumnStretch(0, 1)
         grid_bot.setColumnStretch(1, 0)
-        # grid_bot.setAlignment(qgrp_control, QtCore.Qt.AlignLeft)
 
         # -------------------------
         #   Round up full window

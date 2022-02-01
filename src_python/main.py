@@ -192,6 +192,12 @@ def DAQ_function():
     window.curve_temp_2.appendData(state.time, state.temp_2)
     window.curve_pres_2.appendData(state.time, state.pres_2)
     window.curve_setpoint.appendData(state.time, state.setpoint)
+    window.curve_deadband_HI.appendData(
+        state.time, state.setpoint + config.deadband_dHI
+    )
+    window.curve_deadband_LO.appendData(
+        state.time, state.setpoint + config.deadband_dLO
+    )
 
     # Logging to file
     logger.update(mode="w")
