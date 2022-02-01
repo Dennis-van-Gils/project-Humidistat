@@ -60,6 +60,8 @@ LED status lights
 =================
 
 The RGB LED of the Feather M4 will indicate its status:
+
 * Blue : We're setting up
 * Green: All okay and idling
+
 Every read out, the LED will flash brightly turquoise.
