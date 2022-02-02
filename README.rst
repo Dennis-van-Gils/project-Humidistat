@@ -16,6 +16,8 @@ Placeholder...
 
 .. image:: https://raw.githubusercontent.com/Dennis-van-Gils/project-Humidistat/master/images/screenshot.png
 
+.. image:: https://raw.githubusercontent.com/Dennis-van-Gils/project-Humidistat/master/docs/control_bands_explained.png
+
 Hardware
 ========
 * Adafruit #3857: Adafruit Feather M4 Express - Featuring ATSAMD51 Cortex M4
