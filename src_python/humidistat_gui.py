@@ -271,7 +271,9 @@ class MainWindow(QWidget):
         # Thread-safe curves
         capacity = round(
             CHART_HISTORY_TIME * 1e3 / ard_qdev.worker_DAQ._DAQ_interval_ms
-        )
+        )  # TODO: Fix this wrong calculation. `_DAQ_interval_ms` is not the
+        # correct variable anymore. DAQ interval is rather determined on the
+        # Arduino side.
         PEN_01 = pg.mkPen(controls.COLOR_PEN_TURQUOISE, width=3)
         PEN_02 = pg.mkPen(controls.COLOR_PEN_YELLOW, width=3)
         PEN_03 = pg.mkPen(controls.COLOR_PEN_PINK, width=3)
