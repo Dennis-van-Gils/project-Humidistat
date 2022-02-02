@@ -696,7 +696,6 @@ class MainWindow(QWidget):
         vbox.addLayout(grid_bot, stretch=1)
 
         self.populate_configuration()
-        QtCore.QMetaObject.connectSlotsByName(self)
 
         # -------------------------
         #   Wall clock timer
