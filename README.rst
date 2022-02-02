@@ -14,7 +14,7 @@ Placeholder...
 
 - Github: https://github.com/Dennis-van-Gils/project-Humidistat
 
-.. image:: https://raw.githubusercontent.com/Dennis-van-Gils/project-Humidistat/master/images/screenshot.png
+.. image:: https://raw.githubusercontent.com/Dennis-van-Gils/project-Humidistat/master/screenshot.png
 
 .. image:: https://raw.githubusercontent.com/Dennis-van-Gils/project-Humidistat/master/docs/control_bands_explained.png
 
