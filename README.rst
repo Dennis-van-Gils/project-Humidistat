@@ -40,23 +40,34 @@ onto the Featherboot drive. It will restart automatically with the new firmware.
 Running the application
 -----------------------
 
-Preferred Python distributions:
+
+Prerequisites
+~~~~~~~~~~~~~
+
+| Python 3.8
+| Preferred distribution: Anaconda full or Miniconda
     * `Anaconda <https://www.anaconda.com>`_
     * `Miniconda <https://docs.conda.io/en/latest/miniconda.html>`_
 
 Open `Anaconda Prompt` and navigate to the unpacked folder. Run the following to
-install the necessary packages: ::
+install the necessary packages:
 
-    cd src_python
-    pip install -r requirements.txt
-    
-Now you can run the application: ::
+::
 
-    ipython main.py
-    
-or ::
+   cd src_python
+   conda update -n base -c defaults conda
+   conda create -n humi -c conda-forge  --force -y python=3.8.10
+   conda activate humi
+   pip install -r requirements.txt
 
-    python main.py
+Now you can run the graphical user interface of the humidistat.
+In Anaconda prompt:
+
+::
+
+   conda activate humi
+   ipython main.py
+
 
 LED status lights
 =================
