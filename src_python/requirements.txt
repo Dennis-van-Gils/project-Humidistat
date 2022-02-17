@@ -3,6 +3,7 @@ psutil~=5.6
 pyserial~=3.4
 pyqt5~=5.12
 pyopengl~=3.1
+ipython
 
 # Fix to version 0.11.0, because a monkeypatch specific to 0.11.0 will be applied.
 # This has superior OpenGL performance as compared to 0.11.1 to 0.12.3.
