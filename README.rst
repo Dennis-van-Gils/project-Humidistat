@@ -46,6 +46,7 @@ Prerequisites
 
 | Python 3.8
 | Preferred distribution: Anaconda full or Miniconda
+
     * `Anaconda <https://www.anaconda.com>`_
     * `Miniconda <https://docs.conda.io/en/latest/miniconda.html>`_
 
