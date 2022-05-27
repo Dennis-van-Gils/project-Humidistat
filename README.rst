@@ -10,7 +10,7 @@ Humidistat
 ==========
 *A Physics of Fluids project.*
 
-Placeholder...
+This project concerns an Arduino powered controller with a graphical user-interface in Python to regulate the relative humidity inside of a chamber. It does so by controlling two air lines, one with moist air and the other with dry air, using solenoid valves. The temperature, pressure and relative humidity of the chamber and the optional upstream mixing vessel are measured and can be logged over time.
 
 - Github: https://github.com/Dennis-van-Gils/project-Humidistat
 
