@@ -7,8 +7,8 @@ Manages the graphical user interface
 __author__ = "Dennis van Gils"
 __authoremail__ = "vangils.dennis@gmail.com"
 __url__ = "https://github.com/Dennis-van-Gils/project-Humidistat"
-__date__ = "01-02-2021"
-__version__ = "1.0"
+__date__ = "28-07-2022"
+__version__ = "1.1"
 # pylint: disable=bare-except, broad-except, unnecessary-lambda
 
 from pathlib import Path

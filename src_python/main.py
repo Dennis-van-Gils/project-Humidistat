@@ -7,8 +7,8 @@ A humidity controller for fluid dynamics research
 __author__ = "Dennis van Gils"
 __authoremail__ = "vangils.dennis@gmail.com"
 __url__ = "https://github.com/Dennis-van-Gils/project-Humidistat"
-__date__ = "01-02-2021"
-__version__ = "1.0"
+__date__ = "28-07-2022"
+__version__ = "1.1"
 # pylint: disable=bare-except, broad-except
 
 import sys
@@ -220,7 +220,10 @@ def DAQ_function() -> bool:
 
 
 def write_header_to_log():
+    str_cur_date, str_cur_time = current_date_time_strings()
     logger.write("[HEADER]\n")
+    logger.write(str_cur_date + "\n")
+    logger.write(str_cur_time + "\n")
     logger.write(window.qtxt_comments.toPlainText())
     logger.write("\n\n[DATA]\n")
     logger.write(
@@ -240,7 +243,7 @@ def write_header_to_log():
 def write_data_to_log():
     state = ard_qdev.state  # Shorthand
     logger.write(
-        "%.3f\t%u\t%u\t%u\t%.1f\t%.1f\t%.1f\t%.1f\t%.1f\t%.1f\n"
+        "%.3f\t%u\t%u\t%u\t%.2f\t%.2f\t%.1f\t%.2f\t%.2f\t%.1f\n"
         % (
             logger.elapsed(),
             state.valve_1,

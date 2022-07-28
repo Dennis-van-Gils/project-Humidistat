@@ -7,8 +7,8 @@ Manages multi-threaded communication with the Arduino
 __author__ = "Dennis van Gils"
 __authoremail__ = "vangils.dennis@gmail.com"
 __url__ = "https://github.com/Dennis-van-Gils/project-Humidistat"
-__date__ = "01-02-2021"
-__version__ = "1.0"
+__date__ = "28-07-2022"
+__version__ = "1.1"
 
 from enum import Enum
 import numpy as np
