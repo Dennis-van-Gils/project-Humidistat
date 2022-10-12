@@ -6,7 +6,7 @@
 .. image:: https://img.shields.io/badge/License-MIT-purple.svg
     :target: https://github.com/Dennis-van-Gils/project-Humidistat/blob/master/LICENSE.txt
 
-Humidistat 
+Humidistat
 ==========
 *A Physics of Fluids project.*
 
@@ -44,7 +44,6 @@ Running the application
 Prerequisites
 ~~~~~~~~~~~~~
 
-| Python 3.8
 | Preferred distribution: Anaconda full or Miniconda
 
     * `Anaconda <https://www.anaconda.com>`_
