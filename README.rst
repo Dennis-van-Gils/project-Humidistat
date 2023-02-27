@@ -1,6 +1,6 @@
-.. image:: https://requires.io/github/Dennis-van-Gils/project-Humidistat/requirements.svg?branch=main
-    :target: https://requires.io/github/Dennis-van-Gils/project-Humidistat/requirements/?branch=main
-    :alt: Requirements Status
+.. image:: https://img.shields.io/github/v/release/Dennis-van-Gils/project-Humidistat
+    :target: https://github.com/Dennis-van-Gils/project-Humidistat
+    :alt: Latest release
 .. image:: https://img.shields.io/badge/code%20style-black-000000.svg
     :target: https://github.com/psf/black
 .. image:: https://img.shields.io/badge/License-MIT-purple.svg
