@@ -9,7 +9,7 @@ ipython
 # This has superior OpenGL performance as compared to 0.11.1 to 0.12.3.
 pyqtgraph == 0.11.0   # rq.filter: ==0.11.0
 
-dvg-debug-functions~=2.1
+dvg-debug-functions~=2.4
 dvg-devices~=1.1
 dvg-pyqt-controls~=1.1
 dvg-pyqt-filelogger~=1.1
