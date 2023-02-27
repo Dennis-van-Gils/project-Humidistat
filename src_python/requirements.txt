@@ -14,5 +14,5 @@ dvg-devices~=1.1
 dvg-pyqt-controls~=1.1
 dvg-pyqt-filelogger~=1.1
 dvg-pyqtgraph-monkeypatch~= 2.0
-dvg-pyqtgraph-threadsafe~=3.1
+dvg-pyqtgraph-threadsafe~=3.3
 dvg-qdeviceio~=1.0
