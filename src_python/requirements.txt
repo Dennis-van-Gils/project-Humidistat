@@ -10,7 +10,7 @@ ipython
 pyqtgraph == 0.11.0   # rq.filter: ==0.11.0
 
 dvg-debug-functions~=2.1
-dvg-devices~=1.1
+dvg-devices~=1.3
 dvg-pyqt-controls~=1.1
 dvg-pyqt-filelogger~=1.1
 dvg-pyqtgraph-monkeypatch~= 2.0
