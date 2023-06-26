@@ -23,7 +23,7 @@
 
   https://github.com/Dennis-van-Gils/project-Humidistat
   Dennis van Gils
-  01-02-2022
+  26-06-2023
 *******************************************************************************/
 
 #include <Arduino.h>
@@ -40,19 +40,28 @@
 #define PIN_VALVE_2 5
 #define PIN_PUMP 13
 
+// Figure out which Adafruit board is being used: M0 or M4
+#if defined _VARIANT_ARDUINO_ZERO_
+#  define HAS_NEOPIXEL 0
+#elif defined _VARIANT_FEATHER_M4_
+#  define HAS_NEOPIXEL 1
+#endif
+
 // BME280: Temperature, humidity and pressure sensors
 // NOTE: Do not read out faster than once per second as per BME280 spec-sheet.
 #define DAQ_PERIOD 1000 // [ms] Data-acquisition period
 Adafruit_BME280 bme_1;
 Adafruit_BME280 bme_2;
 
+#if HAS_NEOPIXEL == 1
 // On-board NeoPixel RGB LED
-#define NEO_DIM 3    // Brightness level for dim intensity [0 -255]
-#define NEO_BRIGHT 6 // Brightness level for bright intensity [0 - 255]
-#define NEO_FLASH_DURATION 100 // [ms]
+#  define NEO_DIM 3    // Brightness level for dim intensity [0 -255]
+#  define NEO_BRIGHT 6 // Brightness level for bright intensity [0 - 255]
+#  define NEO_FLASH_DURATION 100 // [ms]
 bool neo_flash = false;
 uint32_t t_neo_flash = 0;
 Adafruit_NeoPixel neo(1, PIN_NEOPIXEL, NEO_GRB + NEO_KHZ800);
+#endif
 
 // Serial command listener
 DvG_SerialCommand sc(Serial);
@@ -91,17 +100,25 @@ void connect_BME280_sensors() {
 
   for (idx_try = 0; idx_try < 3; idx_try++) {
     success = bme_1.begin(0x76);
-    if (success) { break; }
+    if (success) {
+      break;
+    }
     delay(1000);
   }
-  if (!success) { Serial.println("Could not find BME280 sensor #1"); }
+  if (!success) {
+    Serial.println("Could not find BME280 sensor #1");
+  }
 
   for (idx_try = 0; idx_try < 3; idx_try++) {
     success = bme_2.begin(0x77);
-    if (success) { break; }
+    if (success) {
+      break;
+    }
     delay(1000);
   }
-  if (!success) { Serial.println("Could not find BME280 sensor #2"); }
+  if (!success) {
+    Serial.println("Could not find BME280 sensor #2");
+  }
 }
 
 void read_BME280_sensors() {
@@ -145,11 +162,13 @@ void measure_and_report(uint32_t now, uint32_t t_0) {
   /* Perform a single measurement, update `state` and report over serial.
    */
 
+#if HAS_NEOPIXEL == 1
   // Set RGB LED to bright turquoise: Performing new measurement
   neo_flash = true;
   t_neo_flash = now;
   neo.setPixelColor(0, neo.Color(0, NEO_BRIGHT, NEO_BRIGHT));
   neo.show();
+#endif
 
   read_BME280_sensors();
   report(now, t_0);
@@ -184,19 +203,23 @@ void setup() {
   digitalWrite(PIN_VALVE_2, state.valve_2);
   digitalWrite(PIN_PUMP, state.pump);
 
+#if HAS_NEOPIXEL == 1
   // Set RGB LED to blue: We're setting up
   neo.begin();
   neo.setPixelColor(0, neo.Color(0, 0, NEO_BRIGHT));
   neo.show();
+#endif
 
   Serial.begin(9600);
 
   connect_BME280_sensors();
   read_BME280_sensors(); // Ditch the first reading. Tends to be off.
 
+#if HAS_NEOPIXEL == 1
   // Set RGB LED to dim green: We're all ready to go and idle
   neo.setPixelColor(0, neo.Color(0, NEO_DIM, 0));
   neo.show();
+#endif
 }
 
 // -----------------------------------------------------------------------------
@@ -288,7 +311,9 @@ void loop() {
   }
 
   // Report immediately over serial when actuators have changed state
-  if (change_detected) { report(now, t_0); }
+  if (change_detected) {
+    report(now, t_0);
+  }
 
   // DAQ
   if (now - tick >= DAQ_PERIOD) {
@@ -296,10 +321,12 @@ void loop() {
     measure_and_report(now, t_0);
   }
 
+#if HAS_NEOPIXEL == 1
   // Set RGB LED back to dim green: Measurement is done
   if (neo_flash && (now - t_neo_flash >= NEO_FLASH_DURATION)) {
     neo_flash = false;
     neo.setPixelColor(0, neo.Color(0, NEO_DIM, 0));
     neo.show();
   }
+#endif
 }
